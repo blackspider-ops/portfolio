@@ -17,7 +17,7 @@ interface HeroCtaButtonsProps {
   ctaConfig?: CtaConfig;
 }
 
-export function HeroCtaButtons({ primaryCtaText, secondaryCtaText, ctaConfig }: HeroCtaButtonsProps) {
+export default function HeroCtaButtons({ primaryCtaText, secondaryCtaText, ctaConfig }: HeroCtaButtonsProps) {
   const router = useRouter();
   const { open: openPhoneMock } = usePhoneMock();
   const { toggle: toggleTerminal } = useTerminal();

@@ -1,5 +1,5 @@
 export { HeroSection } from './HeroSection';
-export { HeroCtaButtons } from './HeroCtaButtons';
+export { default as HeroCtaButtons } from './HeroCtaButtons';
 export { LiveStatsCard } from './LiveStatsCard';
 export { RecentActivityCard } from './RecentActivityCard';
 export { RecentWorkSection } from './RecentWorkSection';

@@ -21,7 +21,7 @@ const RecentWorkSection = dynamic(() => import('./RecentWorkSection').then(mod =
 const RecentBlogSection = dynamic(() => import('./RecentBlogSection').then(mod => ({ default: mod.RecentBlogSection })));
 const NowPanel = dynamic(() => import('./NowPanel').then(mod => ({ default: mod.NowPanel })));
 const SignalsRow = dynamic(() => import('./SignalsRow').then(mod => ({ default: mod.SignalsRow })));
-const HeroCtaButtons = dynamic(() => import('./HeroCtaButtons').then(mod => ({ default: mod.HeroCtaButtons })), {
+const HeroCtaButtons = dynamic(() => import('./HeroCtaButtons'), {
   ssr: false,
 });
 
@@ -49,9 +49,10 @@ interface CtaConfig {
 
 interface HomeContentProps {
   initialSettings?: SiteSettings | null;
+  children?: React.ReactNode;
 }
 
-export function HomeContent({ initialSettings }: HomeContentProps) {
+export function HomeContent({ initialSettings, children }: HomeContentProps) {
   const router = useRouter();
   const { open: openPhoneMock } = usePhoneMock();
   const { toggle: toggleTerminal } = useTerminal();
@@ -147,11 +148,14 @@ export function HomeContent({ initialSettings }: HomeContentProps) {
   const isDataLoading = settingsLoading || projectsLoading || postsLoading;
 
   return (
-    <div className="px-6 md:px-8 lg:px-12 pb-6 md:pb-8 lg:pb-12 max-w-7xl -mt-6">
+    <div className="p-6 md:p-8 lg:p-12 max-w-7xl">
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-        {/* Left column - Additional hero content (CTA buttons are client-side) */}
+        {/* Left column - Hero and additional content */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* Server-rendered hero passed as children */}
+          {children}
+          
           {/* CTA Buttons - Client-side for interactivity */}
           <HeroCtaButtons
             primaryCtaText={settings?.primary_cta_text}
