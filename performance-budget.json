@@ -1,0 +1,80 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicholasbraun/performance-budget/main/schema.json",
+  "description": "Performance budget for Tejas Portfolio v3 - Requirements 14.1, 14.2",
+  "budgets": [
+    {
+      "path": "/",
+      "name": "Home Page",
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 250
+        },
+        {
+          "resourceType": "total",
+          "budget": 500
+        }
+      ],
+      "timings": [
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2200
+        },
+        {
+          "metric": "first-contentful-paint",
+          "budget": 1800
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 3500
+        },
+        {
+          "metric": "cumulative-layout-shift",
+          "budget": 0.1
+        }
+      ]
+    },
+    {
+      "path": "/projects",
+      "name": "Projects Page",
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 300
+        }
+      ],
+      "timings": [
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2500
+        }
+      ]
+    },
+    {
+      "path": "/blog",
+      "name": "Blog Page",
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 300
+        }
+      ],
+      "timings": [
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2500
+        }
+      ]
+    }
+  ],
+  "notes": {
+    "requirements": {
+      "14.1": "Home LCP under 2.2 seconds on mobile Fast 3G",
+      "14.2": "JavaScript bundle under 250KB gzip on Home"
+    },
+    "testing": {
+      "mobile": "Test with Chrome DevTools throttling set to 'Fast 3G'",
+      "lighthouse": "Run Lighthouse audit in mobile mode for accurate metrics"
+    }
+  }
+}

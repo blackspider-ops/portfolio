@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Review Database Logs",
+  "description": "Check database logs for issues",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Activate the Supabase power, read appropriate steering files, then execute `get_logs` via MCP for \"postgres\" logs to look for slow queries, errors, or connection issues"
+  }
+}

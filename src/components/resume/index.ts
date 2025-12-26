@@ -1,0 +1,1 @@
+export { ResumeContent } from './ResumeContent';

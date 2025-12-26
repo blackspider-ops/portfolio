@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-blue: var(--blue);
+  --color-violet: var(--violet);
+  --color-green: var(--green);
+
+  --font-heading: var(--font-fraunces), 'Playfair Display', serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), monospace;
+}
+
+:root {
+  /* Phantom Protocol - Obsidian Stealth (Default) */
+  --bg: #050505;
+  --bg-void: #050505;
+  --bg-panel: #0A0A0A;
+  --surface: #0F0F0F;
+  --text: #FFFFFF;
+  --muted: #8A9199;
+  --accent: #60A5FA;
+  --accent-border: rgba(138, 145, 153, 0.2);
+  --blue: #60A5FA;
+  --violet: #A78BFA;
+  --green: #2DD4BF;
+  --orange: #FBBF24;
+  --yellow: #FBBF24;
+
+  --font-fraunces: 'Fraunces', 'Playfair Display', serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+}
+
+/* Cyber Theme */
+[data-theme='cyber'] {
+  --bg: #050505;
+  --bg-void: #050505;
+  --bg-panel: #0A0A0A;
+  --surface: #0A0A0A;
+  --text: #00FF41;
+  --muted: #00AA2A;
+  --accent: #00FF41;
+  --accent-border: rgba(0, 255, 65, 0.2);
+  --blue: #00FF41;
+  --violet: #00D4FF;
+  --green: #00FF41;
+}
+
+/* Dracula Theme */
+[data-theme='dracula'] {
+  --bg: #282A36;
+  --bg-void: #1E1F29;
+  --bg-panel: #282A36;
+  --surface: #44475A;
+  --text: #F8F8F2;
+  --muted: #9CA8C4;
+  --accent: #BD93F9;
+  --accent-border: rgba(156, 168, 196, 0.2);
+  --blue: #8BE9FD;
+  --violet: #BD93F9;
+  --green: #50FA7B;
+}
+
+/* Solarized Theme */
+[data-theme='solarized'] {
+  --bg: #002B36;
+  --bg-void: #001E26;
+  --bg-panel: #002B36;
+  --surface: #073642;
+  --text: #EEE8D5;
+  --muted: #93A1A1;
+  --accent: #268BD2;
+  --accent-border: rgba(147, 161, 161, 0.2);
+  --blue: #268BD2;
+  --violet: #6C71C4;
+  --green: #859900;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-inter);
+    max-width: 100vw;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-fraunces);
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-jetbrains);
+  }
+
+  ::selection {
+    background: var(--blue);
+    color: var(--bg);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scan line animation */
+@keyframes scan-line {
+  0% { top: -2px; opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-scan-line {
+  animation: scan-line 10s linear infinite;
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Focus Management */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="button"]:focus-visible,
+  [role="link"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  a:focus:not(:focus-visible),
+  button:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  [tabindex]:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+.focus-trap-container {
+  position: relative;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Scanline overlay */
+.scanline-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* 3D Card Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) var(--bg);
+}
+
+
+/* Phantom Panel */
+.phantom-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+}

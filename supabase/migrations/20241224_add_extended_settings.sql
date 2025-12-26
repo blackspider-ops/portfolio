@@ -1,0 +1,12 @@
+-- Migration already applied via MCP to project xplifhqnkmofhmrwkejf
+-- This file is kept for reference
+
+-- Added columns:
+-- site_name TEXT DEFAULT 'Tejas Singhal'
+-- owner_name TEXT DEFAULT 'Tejas Singhal'
+-- owner_initials TEXT DEFAULT 'TS'
+-- resume_content JSONB (education, skills, experience_note, leadership)
+-- contact_page JSONB (heading, subheading, form_heading, connect_heading, response_time_heading, response_time_text)
+-- navigation_items JSONB (array of {href, label, icon, enabled})
+-- games_config JSONB (snake, pong, tetris, breakout, flappy with enabled, name, emoji)
+-- theme_config JSONB (colors: violet, blue, green, orange, yellow)
