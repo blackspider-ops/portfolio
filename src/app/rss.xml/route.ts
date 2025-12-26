@@ -1,7 +1,19 @@
-import { createClient } from '@/lib/supabase/server';
-import type { BlogPost } from '@/types/database';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import type { BlogPost, Database } from '@/types/database';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://portfolio.dev';
+
+// Create a simple Supabase client without cookies for RSS (public data only)
+function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+  
+  return createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey);
+}
 
 function escapeXml(text: string): string {
   return text
@@ -51,7 +63,18 @@ function generateRssFeed(posts: BlogPost[], siteName: string, siteDescription: s
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
+    
+    if (!supabase) {
+      // Return empty feed if no Supabase connection
+      const emptyFeed = generateRssFeed([], 'Portfolio', 'A developer portfolio');
+      return new Response(emptyFeed, {
+        headers: {
+          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        },
+      });
+    }
     
     // Fetch site settings and posts in parallel
     const [settingsResult, postsResult] = await Promise.all([
