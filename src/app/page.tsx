@@ -38,20 +38,15 @@ export default async function Home() {
       <BlueprintBackground />
       <NavigationWrapper />
       <main className="lg:ml-[92px] pb-20 lg:pb-0 min-h-screen">
-        <div className="p-6 md:p-8 lg:p-12 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-            {/* Left column - Server-rendered hero for fast LCP */}
-            <div className="lg:col-span-7 xl:col-span-8">
-              <HeroSection
-                ownerName={settings?.owner_name}
-                headline={settings?.hero_headline}
-                subhead={settings?.hero_subhead}
-              />
-            </div>
-          </div>
-        </div>
-        {/* Client-side interactive content */}
-        <HomeContent initialSettings={settings} />
+        {/* Full page content with unified grid */}
+        <HomeContent initialSettings={settings}>
+          {/* Server-rendered hero for fast LCP */}
+          <HeroSection
+            ownerName={settings?.owner_name}
+            headline={settings?.hero_headline}
+            subhead={settings?.hero_subhead}
+          />
+        </HomeContent>
       </main>
     </>
   );

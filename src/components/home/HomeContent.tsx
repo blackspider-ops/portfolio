@@ -49,9 +49,10 @@ interface CtaConfig {
 
 interface HomeContentProps {
   initialSettings?: SiteSettings | null;
+  children?: React.ReactNode;
 }
 
-export function HomeContent({ initialSettings }: HomeContentProps) {
+export function HomeContent({ initialSettings, children }: HomeContentProps) {
   const router = useRouter();
   const { open: openPhoneMock } = usePhoneMock();
   const { toggle: toggleTerminal } = useTerminal();
@@ -147,11 +148,14 @@ export function HomeContent({ initialSettings }: HomeContentProps) {
   const isDataLoading = settingsLoading || projectsLoading || postsLoading;
 
   return (
-    <div className="px-6 md:px-8 lg:px-12 pb-6 max-w-7xl -mt-4">
+    <div className="p-6 md:p-8 lg:p-12 max-w-7xl">
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-        {/* Left column - CTA and additional content */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        {/* Left column - Hero and additional content */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* Server-rendered hero passed as children */}
+          {children}
+          
           {/* CTA Buttons - Client-side for interactivity */}
           <HeroCtaButtons
             primaryCtaText={settings?.primary_cta_text}
@@ -169,7 +173,7 @@ export function HomeContent({ initialSettings }: HomeContentProps) {
         </div>
 
         {/* Right column - Stats and panels */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:-mt-[200px]">
+        <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Live Stats */}
           <LiveStatsCard githubUsername={githubUsername} />
 
