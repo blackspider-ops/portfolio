@@ -1,277 +1,411 @@
 'use client';
 
-/**
- * Phone Mock Component
- * Requirements: 8.1-8.5
- * - Floating phone frame toggleable from Home or Workbench
- * - Navigation between apps via swipe, arrow keys, or tab buttons
- * - Long-press on project cards shows stack chips and key tradeoff
- * - Share to Story generates 1080×1920 PNG
- * - Fully keyboard accessible
- */
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { PhoneMockProps, PhoneAppId, PhoneApp } from './types';
-import { PhoneProjectsApp } from './apps/PhoneProjectsApp';
-import { PhoneBlogApp } from './apps/PhoneBlogApp';
-import { PhoneResumeApp } from './apps/PhoneResumeApp';
-import { PhoneContactApp } from './apps/PhoneContactApp';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import type { PhoneMockProps } from './types';
 
-// App definitions with icons
-const PHONE_APPS: PhoneApp[] = [
-  {
-    id: 'projects',
-    name: 'Projects',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-      </svg>
-    ),
-  },
-  {
-    id: 'blog',
-    name: 'Blog',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'resume',
-    name: 'Resume',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'contact',
-    name: 'Contact',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-];
+// Screen imports
+import { HomeScreen } from './screens/HomeScreen';
+import { LockScreen } from './screens/LockScreen';
+import { AppScreen } from './screens/AppScreen';
+import { ControlCenter } from './screens/ControlCenter';
 
-export function PhoneMock({ isOpen, onClose, initialApp = 'projects' }: PhoneMockProps) {
-  const [activeApp, setActiveApp] = useState<PhoneAppId>(initialApp);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+export type AppId = 'projects' | 'blog' | 'resume' | 'contact' | 'photos' | 'settings' | 'safari' | 'github';
+
+export function PhoneMock({ isOpen, onClose, initialApp }: PhoneMockProps) {
+  const [isLocked, setIsLocked] = useState(true);
+  const [activeApp, setActiveApp] = useState<AppId | null>(null);
+  const [showControlCenter, setShowControlCenter] = useState(false);
+  const [time, setTime] = useState(new Date());
+  const [brightness, setBrightness] = useState(100);
+  const [volume, setVolume] = useState(50);
+  const [wifiOn, setWifiOn] = useState(true);
+  const [bluetoothOn, setBluetoothOn] = useState(true);
+  const [airplaneMode, setAirplaneMode] = useState(false);
+  const [isAppSwitcher, setIsAppSwitcher] = useState(false);
+  const [recentApps, setRecentApps] = useState<AppId[]>([]);
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  
+  // For swipe gestures
+  const dragY = useMotionValue(0);
+  const screenScale = useTransform(dragY, [0, 200], [1, 0.85]);
+  const screenBorderRadius = useTransform(dragY, [0, 200], [0, 40]);
 
-  // Reset to initial app when opened
+  // Update time every second for realistic clock
+  useEffect(() => {
+    const interval = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reset state when opened
   useEffect(() => {
     if (isOpen) {
-      setActiveApp(initialApp);
-    }
-  }, [isOpen, initialApp]);
-
-  // Focus management - Requirement 8.5
-  useEffect(() => {
-    if (isOpen) {
+      setIsLocked(true);
+      setActiveApp(null);
+      setShowControlCenter(false);
+      setIsAppSwitcher(false);
       previousFocusRef.current = document.activeElement as HTMLElement;
-      setTimeout(() => {
-        containerRef.current?.focus();
-      }, 10);
+      setTimeout(() => containerRef.current?.focus(), 10);
+      
+      if (initialApp) {
+        setTimeout(() => {
+          setIsLocked(false);
+          setActiveApp(initialApp as AppId);
+        }, 300);
+      }
     } else {
       previousFocusRef.current?.focus();
     }
-  }, [isOpen]);
+  }, [isOpen, initialApp]);
 
-  // Get current app index
-  const currentAppIndex = PHONE_APPS.findIndex((app) => app.id === activeApp);
+  const handleUnlock = useCallback(() => {
+    setIsLocked(false);
+  }, []);
 
-  // Navigate to next/previous app
-  const navigateApp = useCallback((direction: 'next' | 'prev') => {
-    const newIndex =
-      direction === 'next'
-        ? (currentAppIndex + 1) % PHONE_APPS.length
-        : (currentAppIndex - 1 + PHONE_APPS.length) % PHONE_APPS.length;
-    setActiveApp(PHONE_APPS[newIndex].id);
-  }, [currentAppIndex]);
+  const handleOpenApp = useCallback((appId: AppId) => {
+    setActiveApp(appId);
+    setRecentApps(prev => {
+      const filtered = prev.filter(id => id !== appId);
+      return [appId, ...filtered].slice(0, 5);
+    });
+    setIsAppSwitcher(false);
+  }, []);
 
-  // Handle keyboard navigation - Requirement 8.5
+  const handleCloseApp = useCallback(() => {
+    setActiveApp(null);
+    setIsAppSwitcher(false);
+  }, []);
+
+  // Home gesture - swipe up from bottom
+  const handleHomeGesture = useCallback(() => {
+    if (showControlCenter) {
+      setShowControlCenter(false);
+    } else if (isAppSwitcher) {
+      setIsAppSwitcher(false);
+    } else if (activeApp) {
+      setActiveApp(null);
+    }
+  }, [showControlCenter, activeApp, isAppSwitcher]);
+
+  // App switcher gesture - swipe up and hold
+  const handleAppSwitcher = useCallback(() => {
+    if (activeApp && !isLocked) {
+      setIsAppSwitcher(true);
+    }
+  }, [activeApp, isLocked]);
+
+  // Handle drag end for home bar
+  const handleDragEnd = useCallback((_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+    if (info.offset.y < -100) {
+      if (info.velocity.y < -500) {
+        // Fast swipe - go home
+        handleHomeGesture();
+      } else {
+        // Slow swipe - app switcher
+        handleAppSwitcher();
+      }
+    }
+    animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
+  }, [handleHomeGesture, handleAppSwitcher, dragY]);
+
+  // Keyboard handling
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
       case 'Escape':
         e.preventDefault();
-        onClose();
+        if (showControlCenter) {
+          setShowControlCenter(false);
+        } else if (isAppSwitcher) {
+          setIsAppSwitcher(false);
+        } else if (activeApp) {
+          setActiveApp(null);
+        } else {
+          onClose();
+        }
         break;
-      case 'ArrowLeft':
+      case 'h':
         e.preventDefault();
-        navigateApp('prev');
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        navigateApp('next');
+        handleHomeGesture();
         break;
     }
-  }, [onClose, navigateApp]);
+  }, [onClose, showControlCenter, activeApp, isAppSwitcher, handleHomeGesture]);
 
-  // Swipe gesture handling - Requirement 8.2
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      navigateApp('next');
-    } else if (isRightSwipe) {
-      navigateApp('prev');
-    }
-  };
-
-  // Handle backdrop click
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   }, [onClose]);
 
-  // Render active app content
-  const renderAppContent = () => {
-    switch (activeApp) {
-      case 'projects':
-        return <PhoneProjectsApp />;
-      case 'blog':
-        return <PhoneBlogApp />;
-      case 'resume':
-        return <PhoneResumeApp />;
-      case 'contact':
-        return <PhoneContactApp />;
-      default:
-        return null;
-    }
+  // Format time like iPhone
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    }).replace(' ', '');
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    });
   };
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label="Phone Mock"
+      aria-label="Interactive Phone"
     >
-      {/* Phone frame - responsive sizing */}
-      <div
+      {/* Phone device */}
+      <motion.div
         ref={containerRef}
-        className="relative w-[90vw] max-w-[375px] h-[80vh] max-h-[812px] bg-black rounded-[2rem] sm:rounded-[3rem] shadow-2xl overflow-hidden border-[10px] sm:border-[14px] border-gray-800"
+        initial={{ scale: 0.8, opacity: 0, y: 100 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: 100 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        className="relative"
         onKeyDown={handleKeyDown}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
         tabIndex={-1}
       >
-        {/* Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-black rounded-b-3xl z-10" />
+        {/* Phone frame - iPhone 15 Pro style */}
+        <div 
+          className="relative w-[320px] h-[680px] rounded-[55px] p-[12px]"
+          style={{
+            background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+            boxShadow: `
+              0 0 0 1px rgba(255,255,255,0.1),
+              0 50px 100px -20px rgba(0,0,0,0.8),
+              inset 0 1px 0 rgba(255,255,255,0.1)
+            `,
+          }}
+        >
+          {/* Titanium frame effect */}
+          <div className="absolute inset-0 rounded-[55px] pointer-events-none"
+            style={{
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 50%)',
+            }}
+          />
 
-        {/* Status bar */}
-        <div className="absolute top-0 left-0 right-0 h-12 bg-[var(--surface)] flex items-center justify-between px-8 pt-2 z-[5]">
-          <span className="text-xs text-[var(--muted)] font-mono">9:41</span>
-          <div className="flex items-center gap-1">
-            <SignalIcon className="w-4 h-4 text-[var(--muted)]" />
-            <WifiIcon className="w-4 h-4 text-[var(--muted)]" />
-            <BatteryIcon className="w-4 h-4 text-[var(--muted)]" />
+          {/* Screen bezel */}
+          <div 
+            className="relative w-full h-full rounded-[44px] overflow-hidden"
+            style={{
+              background: '#000',
+              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Dynamic Island */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50">
+              <motion.div 
+                className="bg-black rounded-full flex items-center justify-center gap-2 px-4"
+                animate={{ 
+                  width: showControlCenter ? 180 : 126,
+                  height: showControlCenter ? 38 : 36,
+                }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              >
+                {/* Front camera */}
+                <div className="w-[10px] h-[10px] rounded-full bg-[#1a1a1a] relative">
+                  <div className="absolute inset-[2px] rounded-full bg-[#0d0d0d]" />
+                  <div className="absolute top-[2px] left-[2px] w-[2px] h-[2px] rounded-full bg-[#2a2a2a]" />
+                </div>
+                {/* Face ID sensors */}
+                <div className="w-[6px] h-[6px] rounded-full bg-[#1a1a1a]" />
+              </motion.div>
+            </div>
+
+            {/* Screen content */}
+            <motion.div 
+              className="absolute inset-0 overflow-hidden"
+              style={{ 
+                scale: screenScale,
+                borderRadius: screenBorderRadius,
+                filter: `brightness(${brightness}%)`,
+              }}
+            >
+              <AnimatePresence mode="wait">
+                {isLocked ? (
+                  <LockScreen
+                    key="lock"
+                    time={formatTime(time)}
+                    date={formatDate(time)}
+                    onUnlock={handleUnlock}
+                  />
+                ) : isAppSwitcher ? (
+                  <AppSwitcherView
+                    key="switcher"
+                    recentApps={recentApps}
+                    onSelectApp={handleOpenApp}
+                    onClose={() => setIsAppSwitcher(false)}
+                  />
+                ) : activeApp ? (
+                  <AppScreen
+                    key={activeApp}
+                    appId={activeApp}
+                    onClose={handleCloseApp}
+                    time={formatTime(time)}
+                  />
+                ) : (
+                  <HomeScreen
+                    key="home"
+                    time={formatTime(time)}
+                    onOpenApp={handleOpenApp}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Control Center overlay */}
+              <AnimatePresence>
+                {showControlCenter && (
+                  <ControlCenter
+                    onClose={() => setShowControlCenter(false)}
+                    brightness={brightness}
+                    setBrightness={setBrightness}
+                    volume={volume}
+                    setVolume={setVolume}
+                    wifiOn={wifiOn}
+                    setWifiOn={setWifiOn}
+                    bluetoothOn={bluetoothOn}
+                    setBluetoothOn={setBluetoothOn}
+                    airplaneMode={airplaneMode}
+                    setAirplaneMode={setAirplaneMode}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Home indicator bar */}
+            {!isLocked && (
+              <motion.div 
+                className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 cursor-grab active:cursor-grabbing"
+                drag="y"
+                dragConstraints={{ top: -200, bottom: 0 }}
+                dragElastic={0.1}
+                onDragEnd={handleDragEnd}
+                style={{ y: dragY }}
+                onClick={handleHomeGesture}
+              >
+                <div className="w-[134px] h-[5px] bg-white/40 rounded-full" />
+              </motion.div>
+            )}
+
+            {/* Top notch area tap for control center */}
+            <div 
+              className="absolute top-0 right-0 w-24 h-12 z-40 cursor-pointer"
+              onClick={() => setShowControlCenter(true)}
+            />
           </div>
         </div>
 
-        {/* App content area */}
-        <div className="absolute top-12 left-0 right-0 bottom-20 bg-[var(--bg)] overflow-y-auto">
-          {renderAppContent()}
-        </div>
+        {/* Side buttons */}
+        {/* Silent switch */}
+        <div className="absolute -left-[2px] top-[120px] w-[3px] h-[30px] bg-[#2a2a2a] rounded-l-sm" />
+        {/* Volume up */}
+        <div className="absolute -left-[2px] top-[170px] w-[3px] h-[55px] bg-[#2a2a2a] rounded-l-sm" />
+        {/* Volume down */}
+        <div className="absolute -left-[2px] top-[235px] w-[3px] h-[55px] bg-[#2a2a2a] rounded-l-sm" />
+        {/* Power button */}
+        <div className="absolute -right-[2px] top-[180px] w-[3px] h-[80px] bg-[#2a2a2a] rounded-r-sm" />
+      </motion.div>
 
-        {/* Tab bar - Requirement 8.2 */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-[var(--surface)] border-t border-[var(--muted)]/20 flex items-center justify-around px-4 pb-4">
-          {PHONE_APPS.map((app) => (
-            <button
-              key={app.id}
-              onClick={() => setActiveApp(app.id)}
-              className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-                activeApp === app.id
-                  ? 'text-[var(--blue)]'
-                  : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-              aria-label={app.name}
-              aria-current={activeApp === app.id ? 'page' : undefined}
-            >
-              {app.icon}
-              <span className="text-xs">{app.name}</span>
-            </button>
-          ))}
-        </div>
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        className="absolute top-6 right-6 p-3 rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-all"
+        aria-label="Close phone"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
 
-        {/* Home indicator */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-[var(--muted)]/50 rounded-full" />
-
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-[var(--surface)]/80 text-[var(--muted)] hover:text-[var(--text)] transition-colors"
-          aria-label="Close phone mock"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Keyboard hints - hidden on mobile */}
-      <div className="hidden sm:flex absolute bottom-8 left-1/2 -translate-x-1/2 items-center gap-4 text-xs text-[var(--muted)]">
-        <span className="flex items-center gap-1">
-          <kbd className="px-1.5 py-0.5 bg-[var(--surface)] rounded border border-[var(--muted)]/30">←</kbd>
-          <kbd className="px-1.5 py-0.5 bg-[var(--surface)] rounded border border-[var(--muted)]/30">→</kbd>
-          <span>Navigate</span>
+      {/* Keyboard hints */}
+      <div className="hidden sm:flex absolute bottom-6 left-1/2 -translate-x-1/2 items-center gap-6 text-xs text-white/30">
+        <span className="flex items-center gap-2">
+          <kbd className="px-2 py-1 bg-white/5 rounded border border-white/10">H</kbd>
+          Home
         </span>
-        <span className="flex items-center gap-1">
-          <kbd className="px-1.5 py-0.5 bg-[var(--surface)] rounded border border-[var(--muted)]/30">ESC</kbd>
-          <span>Close</span>
+        <span className="flex items-center gap-2">
+          <kbd className="px-2 py-1 bg-white/5 rounded border border-white/10">ESC</kbd>
+          Back
         </span>
       </div>
     </div>
   );
 }
 
-// Status bar icons
-function SignalIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M2 20h2V10H2v10zm4 0h2V8H6v12zm4 0h2V4h-2v16zm4 0h2V6h-2v14zm4 0h2V2h-2v18z" />
-    </svg>
-  );
-}
+// App Switcher View
+function AppSwitcherView({ 
+  recentApps, 
+  onSelectApp, 
+  onClose 
+}: { 
+  recentApps: AppId[]; 
+  onSelectApp: (id: AppId) => void;
+  onClose: () => void;
+}) {
+  const appNames: Record<AppId, string> = {
+    projects: 'Projects',
+    blog: 'Blog',
+    resume: 'Resume',
+    contact: 'Contact',
+    github: 'GitHub',
+    safari: 'Safari',
+    photos: 'Photos',
+    settings: 'Settings',
+  };
 
-function WifiIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 18c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0-4c2.2 0 4 1.8 4 4h-2c0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.2 1.8-4 4-4zm0-4c3.3 0 6 2.7 6 6h-2c0-2.2-1.8-4-4-4s-4 1.8-4 4H6c0-3.3 2.7-6 6-6zm0-4c4.4 0 8 3.6 8 8h-2c0-3.3-2.7-6-6-6s-6 2.7-6 6H4c0-4.4 3.6-8 8-8z" />
-    </svg>
-  );
-}
+  const appColors: Record<AppId, string> = {
+    projects: 'from-orange-400 to-pink-500',
+    blog: 'from-green-400 to-emerald-500',
+    resume: 'from-blue-400 to-indigo-500',
+    contact: 'from-purple-400 to-violet-500',
+    github: 'from-gray-600 to-gray-800',
+    safari: 'from-sky-400 to-blue-500',
+    photos: 'from-pink-400 to-yellow-400',
+    settings: 'from-gray-400 to-gray-600',
+  };
 
-function BatteryIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M17 4h-3V2h-4v2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 18H7V6h10v16z" />
-    </svg>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div className="flex gap-4 px-4 overflow-x-auto">
+        {recentApps.length > 0 ? (
+          recentApps.map((appId, index) => (
+            <motion.button
+              key={appId}
+              initial={{ opacity: 0, y: 50, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 0.85 }}
+              transition={{ delay: index * 0.05 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectApp(appId);
+              }}
+              className="flex-shrink-0 w-[200px] h-[400px] rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className={`w-full h-full bg-gradient-to-br ${appColors[appId]} flex items-center justify-center`}>
+                <span className="text-white text-xl font-semibold">{appNames[appId]}</span>
+              </div>
+            </motion.button>
+          ))
+        ) : (
+          <p className="text-white/50 text-center">No recent apps</p>
+        )}
+      </div>
+    </motion.div>
   );
 }

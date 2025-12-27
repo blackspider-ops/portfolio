@@ -49,7 +49,7 @@ export async function fetchGitHubActivity(
       `${GITHUB_API}/users/${username}/events/public?per_page=100`,
       {
         headers,
-        next: { revalidate: 300 }, // Cache for 5 minutes
+        cache: 'no-store', // Always fetch fresh on server
       }
     );
 

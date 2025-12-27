@@ -7,7 +7,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import type { ShareToStoryData } from './types';
 
 interface PhoneShareButtonProps {
   title: string;
