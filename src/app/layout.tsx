@@ -11,7 +11,7 @@ import { generatePersonJsonLd, generateWebsiteJsonLd } from '@/lib/json-ld';
 import { createClient } from '@/lib/supabase/server';
 import '@/styles/globals.css';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://portfolio.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tejassinghal.dev';
 
 export async function generateMetadata(): Promise<Metadata> {
   // Fetch site settings for dynamic metadata

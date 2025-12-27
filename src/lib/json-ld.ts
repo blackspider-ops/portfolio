@@ -3,7 +3,7 @@
  * Implements Schema.org vocabulary for rich snippets in search results
  */
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://portfolio.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tejassinghal.dev';
 
 export interface PersonSchema {
   name: string;

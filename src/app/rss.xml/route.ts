@@ -1,7 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import type { BlogPost, Database } from '@/types/database';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://portfolio.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tejassinghal.dev';
 
 // Create a simple Supabase client without cookies for RSS (public data only)
 function createClient() {

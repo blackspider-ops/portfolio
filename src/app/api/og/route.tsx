@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://portfolio.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tejassinghal.dev';
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'Portfolio';
 
 export async function GET(request: NextRequest) {

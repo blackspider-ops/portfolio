@@ -48,7 +48,7 @@ async function getProject(slug: string): Promise<Project | null> {
   }
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://portfolio.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tejassinghal.dev';
 
 async function getSiteSettings() {
   const supabase = await createClient();
