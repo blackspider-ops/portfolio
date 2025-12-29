@@ -24,6 +24,9 @@ export interface SiteSettingsInfo {
     linkedin?: string;
     email?: string;
   };
+  resume_content?: {
+    skills?: string[];
+  };
 }
 
 export interface TerminalContext {

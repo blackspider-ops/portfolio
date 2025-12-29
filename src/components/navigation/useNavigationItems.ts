@@ -60,7 +60,7 @@ export function useNavigationItems() {
           .single();
 
         const newData: CachedData = {
-          navItems: (dbData?.navigation_items as NavigationItem[]) || [],
+          navItems: (dbData?.navigation_items as unknown as NavigationItem[]) || [],
           ownerInitials: dbData?.owner_initials || DEFAULT_INITIALS,
         };
 
