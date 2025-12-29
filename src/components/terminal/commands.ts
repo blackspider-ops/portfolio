@@ -55,13 +55,28 @@ function generateAsciiArt(text: string): string {
 const VALID_THEMES = ['dark', 'cyber', 'dracula', 'solarized'];
 
 // Help command - Requirement 6.3
-export const helpCommand: TerminalCommand = {
-  name: 'help',
-  description: 'Show all available commands',
-  execute: () => {
-    return {
-      type: 'text',
-      content: `Available commands:
+// Note: This is a factory function that creates the help command with custom commands
+export function createHelpCommand(customCommands: CustomCommandData[] = []): TerminalCommand {
+  return {
+    name: 'help',
+    description: 'Show all available commands',
+    execute: () => {
+      let customSection = '';
+      if (customCommands.length > 0) {
+        const customLines = customCommands
+          .slice(0, 10) // Limit to 10 to keep it readable
+          .map(c => `  ${c.name.padEnd(16)}${c.description}`)
+          .join('\n');
+        customSection = `
+  
+  Custom Commands
+  ──────────────────────────────────────────────────────────
+${customLines}${customCommands.length > 10 ? `\n  ... and ${customCommands.length - 10} more (type 'commands' to see all)` : ''}`;
+      }
+
+      return {
+        type: 'text',
+        content: `Available commands:
 
   Navigation
   ──────────────────────────────────────────────────────────
@@ -96,11 +111,16 @@ export const helpCommand: TerminalCommand = {
   history           Show command history
   echo <text>       Print text to terminal
   sudo <cmd>        Nice try 🔒
+  commands          List custom commands${customSection}
 
 Type a command and press Enter to execute.`,
-    };
-  },
-};
+      };
+    },
+  };
+}
+
+// Default help command (without custom commands)
+export const helpCommand: TerminalCommand = createHelpCommand([]);
 
 // Whoami command - Requirement 6.4
 export const whoamiCommand: TerminalCommand = {
@@ -471,23 +491,35 @@ export const contactCommand: TerminalCommand = {
   },
 };
 
-// Skills command
+// Skills command - pulls from resume_content.skills
 export const skillsCommand: TerminalCommand = {
   name: 'skills',
   description: 'List technical skills',
-  execute: () => ({
-    type: 'list',
-    content: '⚡ Technical Skills',
-    items: [
-      '',
-      '  Languages     TypeScript, Python, Go, Rust',
-      '  Frontend      React, Next.js, Vue, Tailwind',
-      '  Backend       Node.js, PostgreSQL, Redis',
-      '  DevOps        Docker, AWS, Vercel, CI/CD',
-      '  Tools         Git, Vim, Linux',
-      '',
-    ],
-  }),
+  execute: (_, context) => {
+    const resumeContent = context.siteSettings?.resume_content as { skills?: string[] } | null;
+    const skills = resumeContent?.skills || [];
+    
+    if (skills.length === 0) {
+      return {
+        type: 'text',
+        content: 'No skills found. Add skills in the Resume section of the admin panel.',
+      };
+    }
+    
+    // Format skills in rows of 4
+    const rows: string[] = [''];
+    for (let i = 0; i < skills.length; i += 4) {
+      const row = skills.slice(i, i + 4).map(s => s.padEnd(15)).join('');
+      rows.push(`  ${row}`);
+    }
+    rows.push('');
+    
+    return {
+      type: 'list',
+      content: '⚡ Technical Skills',
+      items: rows,
+    };
+  },
 };
 
 // Date command
@@ -628,6 +660,27 @@ export const cowsayCommand: TerminalCommand = {
   },
 };
 
+// Commands command - lists custom commands (placeholder, actual list comes from context)
+export const commandsCommand: TerminalCommand = {
+  name: 'commands',
+  description: 'List custom commands',
+  execute: () => {
+    return {
+      type: 'text',
+      content: `Custom commands are loaded from the database.
+Use the admin panel to add, edit, or remove custom commands.
+
+Try some common custom commands:
+  hello       Say hello
+  about       About this portfolio
+  hire        Hiring information
+  coffee      Get some coffee ☕
+  ping        Ping pong
+  joke        Programming joke`,
+    };
+  },
+};
+
 // All commands registry
 export const commands: Record<string, TerminalCommand> = {
   help: helpCommand,
@@ -653,12 +706,38 @@ export const commands: Record<string, TerminalCommand> = {
   matrix: matrixCommand,
   neofetch: neofetchCommand,
   cowsay: cowsayCommand,
+  commands: commandsCommand,
 };
+
+// Custom command interface (from database)
+export interface CustomCommandData {
+  name: string;
+  description: string;
+  usage: string | null;
+  output_type: 'text' | 'error' | 'success' | 'ascii' | 'list';
+  output_content: string;
+  output_items: string[] | null;
+}
+
+// Create a terminal command from custom command data
+export function createCustomCommand(data: CustomCommandData): TerminalCommand {
+  return {
+    name: data.name,
+    description: data.description,
+    usage: data.usage || undefined,
+    execute: () => ({
+      type: data.output_type,
+      content: data.output_content,
+      items: data.output_items || undefined,
+    }),
+  };
+}
 
 // Parse and execute a command
 export function executeCommand(
   input: string,
-  context: TerminalContext
+  context: TerminalContext,
+  customCommands: CustomCommandData[] = []
 ): TerminalOutput | Promise<TerminalOutput> {
   const trimmed = input.trim();
   
@@ -670,14 +749,27 @@ export function executeCommand(
   const commandName = parts[0].toLowerCase();
   const args = parts.slice(1);
 
-  // Use Object.hasOwn to prevent prototype pollution attacks (e.g., "__proto__")
-  if (!Object.hasOwn(commands, commandName)) {
-    return {
-      type: 'error',
-      content: `command not found: ${commandName}. Type 'help' for available commands.`,
-    };
+  // Special handling for help command to include custom commands
+  if (commandName === 'help') {
+    const dynamicHelp = createHelpCommand(customCommands);
+    return dynamicHelp.execute(args, context);
   }
 
-  const command = commands[commandName];
-  return command.execute(args, context);
+  // Check built-in commands first (use Object.hasOwn to prevent prototype pollution)
+  if (Object.hasOwn(commands, commandName)) {
+    const command = commands[commandName];
+    return command.execute(args, context);
+  }
+
+  // Check custom commands from database
+  const customCmd = customCommands.find(c => c.name.toLowerCase() === commandName);
+  if (customCmd) {
+    const command = createCustomCommand(customCmd);
+    return command.execute(args, context);
+  }
+
+  return {
+    type: 'error',
+    content: `command not found: ${commandName}. Type 'help' for available commands.`,
+  };
 }

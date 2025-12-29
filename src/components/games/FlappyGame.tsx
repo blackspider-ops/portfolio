@@ -210,18 +210,38 @@ export function FlappyGame({ soundEnabled, onScoreChange, onGameOver }: GameProp
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [state, draw, playScore, playGameOver, onScoreChange, onGameOver]);
 
+  // Touch handler for flapping
+  const handleTouch = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    jump();
+  }, [jump]);
+
   return (
     <div className="flex flex-col items-center gap-4">
       <canvas 
         ref={canvasRef} 
         width={WIDTH} 
         height={HEIGHT} 
-        className="border border-[var(--surface)] rounded-lg cursor-pointer"
+        className="border border-[var(--surface)] rounded-lg cursor-pointer touch-none"
         onClick={jump}
+        onTouchStart={handleTouch}
       />
+      {/* Touch controls for mobile */}
+      <div className="flex gap-4 sm:hidden">
+        <button
+          onTouchStart={(e) => { e.preventDefault(); jump(); }}
+          className="w-full px-8 py-4 bg-[var(--blue)] rounded-lg flex items-center justify-center gap-2 active:opacity-80"
+        >
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+          <span className="text-white font-mono">FLAP</span>
+        </button>
+      </div>
       <div className="text-center text-sm text-[var(--muted)] font-mono">
-        <p>SPACE or Click to flap</p>
-        <p>P to pause</p>
+        <p className="hidden sm:block">SPACE or Click to flap</p>
+        <p className="hidden sm:block">P to pause</p>
+        <p className="sm:hidden">Tap anywhere to flap</p>
       </div>
     </div>
   );

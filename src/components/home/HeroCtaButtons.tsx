@@ -11,13 +11,25 @@ interface CtaConfig {
   secondary_link?: string;
 }
 
+interface FeatureToggles {
+  phone_mock?: boolean;
+  terminal?: boolean;
+  games?: boolean;
+}
+
 interface HeroCtaButtonsProps {
   primaryCtaText?: string;
   secondaryCtaText?: string;
   ctaConfig?: CtaConfig;
+  featureToggles?: FeatureToggles;
 }
 
-export default function HeroCtaButtons({ primaryCtaText, secondaryCtaText, ctaConfig }: HeroCtaButtonsProps) {
+export default function HeroCtaButtons({ 
+  primaryCtaText, 
+  secondaryCtaText, 
+  ctaConfig,
+  featureToggles 
+}: HeroCtaButtonsProps) {
   const router = useRouter();
   const { open: openPhoneMock } = usePhoneMock();
   const { toggle: toggleTerminal } = useTerminal();
@@ -25,10 +37,16 @@ export default function HeroCtaButtons({ primaryCtaText, secondaryCtaText, ctaCo
   const handleCtaAction = (action: 'phone_mock' | 'terminal' | 'link', link?: string) => {
     switch (action) {
       case 'phone_mock':
-        openPhoneMock();
+        // Only open if feature is enabled (default to true if not set)
+        if (featureToggles?.phone_mock !== false) {
+          openPhoneMock();
+        }
         break;
       case 'terminal':
-        toggleTerminal();
+        // Only open if feature is enabled (default to true if not set)
+        if (featureToggles?.terminal !== false) {
+          toggleTerminal();
+        }
         break;
       case 'link':
         if (link) {
@@ -42,11 +60,22 @@ export default function HeroCtaButtons({ primaryCtaText, secondaryCtaText, ctaCo
     }
   };
 
-  if (!primaryCtaText && !secondaryCtaText) return null;
+  // Check if a CTA should be shown based on its action and feature toggles
+  const shouldShowCta = (action?: 'phone_mock' | 'terminal' | 'link') => {
+    if (!action) return true;
+    if (action === 'phone_mock' && featureToggles?.phone_mock === false) return false;
+    if (action === 'terminal' && featureToggles?.terminal === false) return false;
+    return true;
+  };
+
+  const showPrimary = primaryCtaText && shouldShowCta(ctaConfig?.primary_action);
+  const showSecondary = secondaryCtaText && shouldShowCta(ctaConfig?.secondary_action);
+
+  if (!showPrimary && !showSecondary) return null;
 
   return (
     <div className="flex flex-wrap gap-3">
-      {primaryCtaText && (
+      {showPrimary && (
         <button
           onClick={() => handleCtaAction(ctaConfig?.primary_action || 'phone_mock', ctaConfig?.primary_link)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-transparent border border-muted/30 rounded text-text text-sm font-mono tracking-wide hover:bg-surface hover:border-muted/50 transition-all"
@@ -61,7 +90,7 @@ export default function HeroCtaButtons({ primaryCtaText, secondaryCtaText, ctaCo
         </button>
       )}
 
-      {secondaryCtaText && (
+      {showSecondary && (
         <button
           onClick={() => handleCtaAction(ctaConfig?.secondary_action || 'phone_mock', ctaConfig?.secondary_link)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-transparent border border-muted/30 rounded text-text text-sm font-mono tracking-wide hover:bg-surface hover:border-muted/50 transition-all"

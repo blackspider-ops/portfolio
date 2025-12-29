@@ -116,6 +116,107 @@ export function TetrisGame({ soundEnabled, onScoreChange, onGameOver }: GameProp
     return { ...piece, shape: newShape };
   }, []);
 
+  // Touch controls
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    const minSwipe = 30;
+
+    // Quick tap to rotate
+    if (Math.abs(deltaX) < minSwipe && Math.abs(deltaY) < minSwipe && deltaTime < 200) {
+      if (!state.isPlaying && !state.isGameOver) {
+        setState(s => ({ ...s, isPlaying: true, piece: s.nextPiece, nextPiece: createPiece() }));
+      } else if (state.isGameOver) {
+        setState(getInitialState());
+      } else if (state.piece && !state.isPaused) {
+        setState(s => {
+          if (!s.piece) return s;
+          const rotated = rotate(s.piece);
+          if (!collides(s.board, rotated)) return { ...s, piece: rotated };
+          return s;
+        });
+      }
+      touchStartRef.current = null;
+      return;
+    }
+
+    if (!state.isPlaying || state.isPaused || state.isGameOver || !state.piece) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    // Swipe down for fast drop
+    if (deltaY > minSwipe && Math.abs(deltaY) > Math.abs(deltaX)) {
+      setState(s => {
+        if (!s.piece) return s;
+        let newY = s.piece.y;
+        while (!collides(s.board, { ...s.piece, y: newY + 1 })) {
+          newY++;
+        }
+        return { ...s, piece: { ...s.piece, y: newY } };
+      });
+    }
+    // Swipe left/right to move
+    else if (Math.abs(deltaX) > minSwipe) {
+      const direction = deltaX > 0 ? 1 : -1;
+      setState(s => {
+        if (!s.piece || collides(s.board, s.piece, direction, 0)) return s;
+        return { ...s, piece: { ...s.piece, x: s.piece.x + direction } };
+      });
+    }
+
+    touchStartRef.current = null;
+  }, [state.isPlaying, state.isPaused, state.isGameOver, state.piece, collides, rotate]);
+
+  // Move piece left
+  const moveLeft = useCallback(() => {
+    if (!state.isPlaying || state.isPaused || state.isGameOver || !state.piece) return;
+    setState(s => {
+      if (!s.piece || collides(s.board, s.piece, -1, 0)) return s;
+      return { ...s, piece: { ...s.piece, x: s.piece.x - 1 } };
+    });
+  }, [state.isPlaying, state.isPaused, state.isGameOver, state.piece, collides]);
+
+  // Move piece right
+  const moveRight = useCallback(() => {
+    if (!state.isPlaying || state.isPaused || state.isGameOver || !state.piece) return;
+    setState(s => {
+      if (!s.piece || collides(s.board, s.piece, 1, 0)) return s;
+      return { ...s, piece: { ...s.piece, x: s.piece.x + 1 } };
+    });
+  }, [state.isPlaying, state.isPaused, state.isGameOver, state.piece, collides]);
+
+  // Rotate piece
+  const rotatePiece = useCallback(() => {
+    if (!state.isPlaying || state.isPaused || state.isGameOver || !state.piece) return;
+    setState(s => {
+      if (!s.piece) return s;
+      const rotated = rotate(s.piece);
+      if (!collides(s.board, rotated)) return { ...s, piece: rotated };
+      return s;
+    });
+  }, [state.isPlaying, state.isPaused, state.isGameOver, state.piece, collides, rotate]);
+
+  // Drop piece
+  const dropPiece = useCallback(() => {
+    if (!state.isPlaying || state.isPaused || state.isGameOver || !state.piece) return;
+    setState(s => {
+      if (!s.piece || collides(s.board, s.piece, 0, 1)) return s;
+      return { ...s, piece: { ...s.piece, y: s.piece.y + 1 } };
+    });
+  }, [state.isPlaying, state.isPaused, state.isGameOver, state.piece, collides]);
+
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -282,10 +383,80 @@ export function TetrisGame({ soundEnabled, onScoreChange, onGameOver }: GameProp
         <span>Score: {state.score}</span>
         <span>Level: {state.level}</span>
       </div>
-      <canvas ref={canvasRef} width={COLS * CELL_SIZE} height={ROWS * CELL_SIZE} className="border border-[var(--surface)] rounded-lg" />
+      <canvas 
+        ref={canvasRef} 
+        width={COLS * CELL_SIZE} 
+        height={ROWS * CELL_SIZE} 
+        className="border border-[var(--surface)] rounded-lg touch-none"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      />
+      {/* Touch controls for mobile */}
+      <div className="grid grid-cols-4 gap-2 sm:hidden">
+        <button
+          onTouchStart={(e) => { e.preventDefault(); moveLeft(); }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onTouchStart={(e) => { e.preventDefault(); rotatePiece(); }}
+          className="w-14 h-14 bg-[var(--violet)] rounded-lg flex items-center justify-center active:opacity-80"
+        >
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+        <button
+          onTouchStart={(e) => { e.preventDefault(); dropPiece(); }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <button
+          onTouchStart={(e) => { e.preventDefault(); moveRight(); }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div className="sm:hidden">
+        <button
+          onClick={() => {
+            if (state.isGameOver) setState(getInitialState());
+            else if (!state.isPlaying) setState(s => ({ ...s, isPlaying: true, piece: s.nextPiece, nextPiece: createPiece() }));
+            else setState(s => ({ ...s, isPaused: !s.isPaused }));
+          }}
+          className="px-6 py-3 bg-[var(--blue)] rounded-lg flex items-center justify-center gap-2 active:opacity-80"
+        >
+          {state.isPlaying && !state.isPaused ? (
+            <>
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+              <span className="text-white font-mono text-sm">PAUSE</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span className="text-white font-mono text-sm">{state.isGameOver ? 'RESTART' : 'START'}</span>
+            </>
+          )}
+        </button>
+      </div>
       <div className="text-center text-sm text-[var(--muted)] font-mono">
-        <p>← → Move | ↑ Rotate | ↓ Drop</p>
-        <p>SPACE to start/pause</p>
+        <p className="hidden sm:block">← → Move | ↑ Rotate | ↓ Drop</p>
+        <p className="hidden sm:block">SPACE to start/pause</p>
+        <p className="sm:hidden">Swipe or use buttons to control</p>
+        <p className="sm:hidden">Tap to rotate</p>
       </div>
     </div>
   );

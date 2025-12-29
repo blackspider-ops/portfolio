@@ -364,6 +364,68 @@ export function SnakeGame({ soundEnabled, onScoreChange, onGameOver }: GameProps
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.isPlaying, state.isPaused, state.isGameOver]);
 
+  // Touch controls
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const minSwipe = 30;
+
+    // Tap to start/pause
+    if (Math.abs(deltaX) < minSwipe && Math.abs(deltaY) < minSwipe) {
+      if (state.isGameOver) {
+        setState(getInitialState());
+      } else if (!state.isPlaying) {
+        setState(prev => ({ ...prev, isPlaying: true }));
+      } else {
+        setState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+      }
+      touchStartRef.current = null;
+      return;
+    }
+
+    if (!state.isPlaying || state.isPaused || state.isGameOver) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    // Determine swipe direction
+    let newDirection: Direction | null = null;
+    
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Horizontal swipe
+      newDirection = deltaX > 0 ? 'RIGHT' : 'LEFT';
+    } else {
+      // Vertical swipe
+      newDirection = deltaY > 0 ? 'DOWN' : 'UP';
+    }
+
+    if (newDirection) {
+      const opposites: Record<Direction, Direction> = {
+        UP: 'DOWN',
+        DOWN: 'UP',
+        LEFT: 'RIGHT',
+        RIGHT: 'LEFT',
+      };
+
+      setState(prev => {
+        if (opposites[newDirection!] === prev.direction) return prev;
+        return { ...prev, nextDirection: newDirection! };
+      });
+    }
+
+    touchStartRef.current = null;
+  }, [state.isPlaying, state.isPaused, state.isGameOver]);
+
   // Game loop interval
   useEffect(() => {
     if (state.isPlaying && !state.isPaused && !state.isGameOver) {
@@ -394,12 +456,89 @@ export function SnakeGame({ soundEnabled, onScoreChange, onGameOver }: GameProps
         ref={canvasRef}
         width={GRID_SIZE * CELL_SIZE}
         height={GRID_SIZE * CELL_SIZE}
-        className="border border-[var(--surface)] rounded-lg"
+        className="border border-[var(--surface)] rounded-lg touch-none"
         style={{ imageRendering: 'pixelated' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       />
+      {/* Touch controls for mobile */}
+      <div className="grid grid-cols-3 gap-2 sm:hidden">
+        <div />
+        <button
+          onClick={() => {
+            if (!state.isPlaying || state.isPaused || state.isGameOver) return;
+            if (state.direction !== 'DOWN') setState(prev => ({ ...prev, nextDirection: 'UP' }));
+          }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+        <div />
+        <button
+          onClick={() => {
+            if (!state.isPlaying || state.isPaused || state.isGameOver) return;
+            if (state.direction !== 'RIGHT') setState(prev => ({ ...prev, nextDirection: 'LEFT' }));
+          }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => {
+            if (state.isGameOver) {
+              setState(getInitialState());
+            } else if (!state.isPlaying) {
+              setState(prev => ({ ...prev, isPlaying: true }));
+            } else {
+              setState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+            }
+          }}
+          className="w-14 h-14 bg-[var(--blue)] rounded-lg flex items-center justify-center active:opacity-80"
+        >
+          {state.isPlaying && !state.isPaused ? (
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+        <button
+          onClick={() => {
+            if (!state.isPlaying || state.isPaused || state.isGameOver) return;
+            if (state.direction !== 'LEFT') setState(prev => ({ ...prev, nextDirection: 'RIGHT' }));
+          }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <div />
+        <button
+          onClick={() => {
+            if (!state.isPlaying || state.isPaused || state.isGameOver) return;
+            if (state.direction !== 'UP') setState(prev => ({ ...prev, nextDirection: 'DOWN' }));
+          }}
+          className="w-14 h-14 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-6 h-6 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div />
+      </div>
       <div className="text-center text-sm text-[var(--muted)] font-mono">
-        <p>Arrow keys or WASD to move</p>
-        <p>SPACE to start/pause</p>
+        <p className="hidden sm:block">Arrow keys or WASD to move</p>
+        <p className="hidden sm:block">SPACE to start/pause</p>
+        <p className="sm:hidden">Swipe or use buttons to move</p>
+        <p className="sm:hidden">Tap to start/pause</p>
       </div>
     </div>
   );

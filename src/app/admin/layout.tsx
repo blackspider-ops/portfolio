@@ -106,6 +106,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <AdminNavLink href="/admin/messages">Messages</AdminNavLink>
             )}
             {userRole?.role === 'admin' && (
+              <AdminNavLink href="/admin/terminal">Terminal</AdminNavLink>
+            )}
+            {userRole?.role === 'admin' && (
               <AdminNavLink href="/admin/settings">Settings</AdminNavLink>
             )}
             <SignOutButton />

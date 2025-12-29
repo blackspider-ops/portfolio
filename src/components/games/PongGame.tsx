@@ -309,6 +309,35 @@ export function PongGame({ soundEnabled, onScoreChange, onGameOver }: GameProps)
     };
   }, [state.isPlaying, state.isGameOver]);
 
+  // Touch controls for mobile
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!state.isPlaying || state.isPaused || state.isGameOver) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const touchY = touch.clientY - rect.top;
+    const scaleY = CANVAS_HEIGHT / rect.height;
+    const targetY = touchY * scaleY - PADDLE_HEIGHT / 2;
+    
+    setState(prev => ({
+      ...prev,
+      playerY: Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, targetY)),
+    }));
+  }, [state.isPlaying, state.isPaused, state.isGameOver]);
+
+  const handleCanvasTap = useCallback(() => {
+    if (state.isGameOver) {
+      setState(getInitialState());
+    } else if (!state.isPlaying) {
+      setState(prev => ({ ...prev, isPlaying: true }));
+    } else {
+      setState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+    }
+  }, [state.isPlaying, state.isGameOver]);
+
   // Animation loop
   useEffect(() => {
     const animate = () => {
@@ -332,12 +361,68 @@ export function PongGame({ soundEnabled, onScoreChange, onGameOver }: GameProps)
         ref={canvasRef}
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
-        className="border border-[var(--surface)] rounded-lg max-w-full"
+        className="border border-[var(--surface)] rounded-lg max-w-full touch-none"
         style={{ imageRendering: 'pixelated' }}
+        onTouchMove={handleTouchMove}
+        onTouchStart={(e) => {
+          // Prevent scrolling
+          e.preventDefault();
+          // Check if it's a tap (not a drag)
+          const startY = e.touches[0].clientY;
+          const timeout = setTimeout(() => {
+            // If still touching after 200ms, it's a drag not a tap
+          }, 200);
+          const handleTouchEnd = (endEvent: TouchEvent) => {
+            clearTimeout(timeout);
+            const endY = endEvent.changedTouches[0].clientY;
+            if (Math.abs(endY - startY) < 10) {
+              handleCanvasTap();
+            }
+            document.removeEventListener('touchend', handleTouchEnd);
+          };
+          document.addEventListener('touchend', handleTouchEnd, { once: true });
+        }}
       />
+      {/* Mobile controls */}
+      <div className="flex gap-4 sm:hidden">
+        <button
+          onTouchStart={() => keysRef.current.add('ArrowUp')}
+          onTouchEnd={() => keysRef.current.delete('ArrowUp')}
+          className="w-16 h-16 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-8 h-8 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={handleCanvasTap}
+          className="w-16 h-16 bg-[var(--blue)] rounded-lg flex items-center justify-center active:opacity-80"
+        >
+          {state.isPlaying && !state.isPaused ? (
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+          ) : (
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+        <button
+          onTouchStart={() => keysRef.current.add('ArrowDown')}
+          onTouchEnd={() => keysRef.current.delete('ArrowDown')}
+          className="w-16 h-16 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-8 h-8 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
       <div className="text-center text-sm text-[var(--muted)] font-mono">
-        <p>W/S or Arrow keys to move</p>
-        <p>SPACE to start/pause</p>
+        <p className="hidden sm:block">W/S or Arrow keys to move</p>
+        <p className="hidden sm:block">SPACE to start/pause</p>
+        <p className="sm:hidden">Drag on screen or use buttons</p>
+        <p className="sm:hidden">Tap to start/pause</p>
       </div>
     </div>
   );

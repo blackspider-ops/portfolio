@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { NavigationWrapper } from '@/components/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useFeatureEnabled } from '@/lib/hooks/useFeatureToggles';
 import { SnakeGame } from '@/components/games/SnakeGame';
 import { PongGame } from '@/components/games/PongGame';
 import { TetrisGame } from '@/components/games/TetrisGame';
@@ -34,11 +36,20 @@ const DEFAULT_GAMES_CONFIG: GamesConfig = {
 };
 
 export default function PlayPage() {
+  const router = useRouter();
+  const gamesEnabled = useFeatureEnabled('games');
   const [gamesConfig, setGamesConfig] = useState<GamesConfig>(DEFAULT_GAMES_CONFIG);
   const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const supabase = createClient();
+
+  // Redirect to home if games feature is disabled
+  useEffect(() => {
+    if (!gamesEnabled) {
+      router.replace('/');
+    }
+  }, [gamesEnabled, router]);
 
   // Fetch games config from database
   useEffect(() => {
@@ -77,6 +88,11 @@ export default function PlayPage() {
   };
 
   const enabledGames = Object.entries(gamesConfig).filter(([_, cfg]) => cfg.enabled) as [GameType, GameConfig][];
+
+  // Don't render if games feature is disabled (will redirect)
+  if (!gamesEnabled) {
+    return null;
+  }
 
   if (enabledGames.length === 0) {
     return (

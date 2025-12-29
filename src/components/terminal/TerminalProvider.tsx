@@ -10,6 +10,7 @@ import { createContext, useContext, useCallback, useState, useEffect, lazy, Susp
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useSiteSettings } from '@/lib/hooks/useData';
+import { useFeatureToggles } from '@/lib/hooks/useFeatureToggles';
 import type { ProjectInfo, BlogPostInfo, SiteSettingsInfo } from './types';
 import type { ThemeName } from '@/lib/design-tokens';
 
@@ -46,6 +47,7 @@ export function TerminalProvider({
   const { setTheme } = useTheme();
   const router = useRouter();
   const { data: siteSettingsData } = useSiteSettings();
+  const featureToggles = useFeatureToggles();
 
   // Transform site settings for terminal context
   const siteSettings: SiteSettingsInfo | undefined = siteSettingsData ? {
@@ -90,6 +92,9 @@ export function TerminalProvider({
   // Global keyboard shortcut listener - Requirement 6.1
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if terminal feature is disabled
+      if (!featureToggles.terminal) return;
+      
       // Toggle on tilde (~) key - Requirement 6.1
       // Check for both ` (backtick) and ~ (tilde) since they're on the same key
       if (e.key === '`' || e.key === '~') {
@@ -109,7 +114,7 @@ export function TerminalProvider({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [toggle]);
+  }, [toggle, featureToggles.terminal]);
 
   return (
     <TerminalContext.Provider value={{ isOpen, open, close, toggle, devNotesVisible, matrixActive, toggleMatrix }}>

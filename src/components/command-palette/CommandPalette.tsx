@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useFeatureToggles } from '@/lib/hooks/useFeatureToggles';
 import type { CommandItem, CommandPaletteProps, SearchableContent } from './types';
 import { searchCommands, searchContent } from './search';
 
@@ -122,6 +123,7 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const featureToggles = useFeatureToggles();
 
   const { containerRef } = useFocusTrap<HTMLDivElement>({
     isActive: isOpen,
@@ -158,14 +160,15 @@ export function CommandPalette({
     if (onToggleTheme) {
       actions.push({ id: 'action-toggle-theme', type: 'action', title: 'Toggle Theme', description: 'Switch themes', icon: <ThemeIcon />, action: () => { onToggleTheme(); onClose(); }, keywords: ['theme', 'dark'] });
     }
-    if (onOpenTerminal) {
+    // Only show terminal command if feature is enabled
+    if (onOpenTerminal && featureToggles.terminal) {
       actions.push({ id: 'action-open-terminal', type: 'action', title: 'Open Terminal', description: 'Open terminal', icon: <TerminalIcon />, shortcut: '~', action: () => { onOpenTerminal(); onClose(); }, keywords: ['terminal', 'cli'] });
     }
     if (projects.length > 0) {
       actions.push({ id: 'action-random-project', type: 'action', title: 'Random Project', description: 'Navigate to random project', icon: <ShuffleIcon />, action: () => { const p = projects[Math.floor(Math.random() * projects.length)]; navigate(`/projects/${p.slug}`); }, keywords: ['random'] });
     }
     return actions;
-  }, [onCopyEmail, onDownloadResume, onToggleTheme, onOpenTerminal, projects, navigate, onClose]);
+  }, [onCopyEmail, onDownloadResume, onToggleTheme, onOpenTerminal, projects, navigate, onClose, featureToggles.terminal]);
 
   const projectCommands: CommandItem[] = useMemo(() => 
     projects.map((project) => ({ id: `project-${project.id}`, type: 'project' as const, title: project.title, description: project.description, icon: <ProjectIcon />, action: () => navigate(`/projects/${project.slug}`), keywords: project.keywords })),

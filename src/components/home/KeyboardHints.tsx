@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useFeatureEnabled } from '@/lib/hooks/useFeatureToggles';
 
 export function KeyboardHints() {
   const [isMac, setIsMac] = useState(true);
+  const terminalEnabled = useFeatureEnabled('terminal');
 
   useEffect(() => {
     setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
@@ -21,12 +23,14 @@ export function KeyboardHints() {
           </kbd>
           <span className="text-muted font-mono">Palette</span>
         </div>
-        <div className="flex items-center gap-2">
-          <kbd className="px-2 py-1 bg-bg border border-muted/20 rounded text-xs font-mono text-text min-w-[30px] text-center">
-            ~
-          </kbd>
-          <span className="text-muted font-mono">Terminal</span>
-        </div>
+        {terminalEnabled && (
+          <div className="flex items-center gap-2">
+            <kbd className="px-2 py-1 bg-bg border border-muted/20 rounded text-xs font-mono text-text min-w-[30px] text-center">
+              ~
+            </kbd>
+            <span className="text-muted font-mono">Terminal</span>
+          </div>
+        )}
       </div>
     </div>
   );

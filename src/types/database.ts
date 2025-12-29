@@ -423,6 +423,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      terminal_commands: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          usage: string | null;
+          category: string;
+          output_type: 'text' | 'error' | 'success' | 'ascii' | 'list';
+          output_content: string;
+          output_items: string[] | null;
+          is_system: boolean;
+          is_enabled: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description: string;
+          usage?: string | null;
+          category?: string;
+          output_type?: 'text' | 'error' | 'success' | 'ascii' | 'list';
+          output_content: string;
+          output_items?: string[] | null;
+          is_system?: boolean;
+          is_enabled?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          usage?: string | null;
+          category?: string;
+          output_type?: 'text' | 'error' | 'success' | 'ascii' | 'list';
+          output_content?: string;
+          output_items?: string[] | null;
+          is_system?: boolean;
+          is_enabled?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -459,3 +507,4 @@ export type PreviewToken = Tables<'preview_tokens'>;
 export type Asset = Tables<'assets'>;
 export type UserRole = Tables<'user_roles'>;
 export type AuditLog = Tables<'audit_log'>;
+export type TerminalCommand = Tables<'terminal_commands'>;

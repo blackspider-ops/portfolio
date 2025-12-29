@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useTerminalCommands } from '@/lib/hooks/useTerminalCommands';
 import type { TerminalProps, TerminalHistoryEntry, TerminalOutput, TerminalContext } from './types';
 import { executeCommand } from './commands';
 
@@ -31,6 +32,9 @@ export function Terminal({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
+  
+  // Fetch custom commands from database
+  const { commands: customCommands } = useTerminalCommands();
 
   const { containerRef } = useFocusTrap<HTMLDivElement>({
     isActive: isOpen,
@@ -95,7 +99,7 @@ export function Terminal({
     setHistoryIndex(-1);
 
     const context = createContext();
-    const output = await executeCommand(trimmedInput, context);
+    const output = await executeCommand(trimmedInput, context, customCommands);
 
     if (output.content === '__CLEAR__') {
       setHistory([]);
@@ -113,7 +117,7 @@ export function Terminal({
     ]);
 
     setInput('');
-  }, [input, commandHistory, saveCommandHistory, createContext]);
+  }, [input, commandHistory, saveCommandHistory, createContext, customCommands]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {

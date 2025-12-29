@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { TerminalSquare, Search, Palette } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigationItems } from './useNavigationItems';
+import { useFeatureToggles } from '@/lib/hooks/useFeatureToggles';
 import {
   HomeIcon,
   AboutIcon,
@@ -52,6 +53,7 @@ export function LeftRail({ onCommandPalette, onTerminal, onThemeToggle }: LeftRa
   const pathname = usePathname();
   const router = useRouter();
   const { navItems, ownerInitials } = useNavigationItems();
+  const featureToggles = useFeatureToggles();
   
   // Track which item was clicked for instant visual feedback
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -70,6 +72,13 @@ export function LeftRail({ onCommandPalette, onTerminal, onThemeToggle }: LeftRa
   if (pendingHref !== null && (pendingHref === pathname || pathname.startsWith(pendingHref))) {
     setPendingHref(null);
   }
+
+  // Filter nav items based on feature toggles
+  const filteredNavItems = navItems.filter(item => {
+    // Hide arcade if games feature is disabled
+    if (item.icon === 'arcade' && !featureToggles.games) return false;
+    return true;
+  });
 
   const getIcon = (iconName: string, size: number) => {
     const IconComponent = iconMap[iconName] || HomeIcon;
@@ -123,7 +132,7 @@ export function LeftRail({ onCommandPalette, onTerminal, onThemeToggle }: LeftRa
 
       {/* Main Nav */}
       <nav className="flex flex-col items-center gap-1 flex-1">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const active = isActive(item.href);
           const isExternal = item.href.startsWith('http');
 
@@ -191,16 +200,18 @@ export function LeftRail({ onCommandPalette, onTerminal, onThemeToggle }: LeftRa
             Command Palette
           </span>
         </button>
-        <button 
-          className="relative flex items-center justify-center w-12 h-12 text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 bg-transparent border-none cursor-pointer group"
-          aria-label="Terminal" 
-          onClick={onTerminal}
-        >
-          <TerminalSquare size={18} />
-          <span className="absolute left-full ml-3 px-3 py-1.5 bg-[var(--surface)] text-[var(--text)] text-sm whitespace-nowrap rounded-md border border-[var(--muted)]/20 opacity-0 -translate-x-2 pointer-events-none transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
-            Terminal
-          </span>
-        </button>
+        {featureToggles.terminal && (
+          <button 
+            className="relative flex items-center justify-center w-12 h-12 text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 bg-transparent border-none cursor-pointer group"
+            aria-label="Terminal" 
+            onClick={onTerminal}
+          >
+            <TerminalSquare size={18} />
+            <span className="absolute left-full ml-3 px-3 py-1.5 bg-[var(--surface)] text-[var(--text)] text-sm whitespace-nowrap rounded-md border border-[var(--muted)]/20 opacity-0 -translate-x-2 pointer-events-none transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
+              Terminal
+            </span>
+          </button>
+        )}
         <button 
           className="relative flex items-center justify-center w-12 h-12 text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 bg-transparent border-none cursor-pointer group"
           aria-label="Theme" 

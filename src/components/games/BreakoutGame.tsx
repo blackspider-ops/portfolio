@@ -70,10 +70,47 @@ export function BreakoutGame({ soundEnabled, onScoreChange, onGameOver }: GamePr
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number | null>(null);
   const keysRef = useRef<Set<string>>(new Set());
+  const touchXRef = useRef<number | null>(null);
   const { playBounce, playScore, playGameOver } = useGameSound({ 
     enabled: soundEnabled, 
     isPlaying: state.isPlaying && !state.isPaused 
   });
+
+  // Touch handlers for paddle control
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    touchXRef.current = touch.clientX - rect.left;
+    
+    // Tap to start/pause
+    if (state.isGameOver || state.won) {
+      setState(getInitialState());
+    } else if (!state.isPlaying) {
+      setState(s => ({ ...s, isPlaying: true }));
+    }
+  }, [state.isGameOver, state.won, state.isPlaying]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!state.isPlaying || state.isPaused) return;
+    
+    const touch = e.touches[0];
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = WIDTH / rect.width;
+    const touchX = (touch.clientX - rect.left) * scaleX;
+    
+    setState(s => ({
+      ...s,
+      paddleX: Math.max(0, Math.min(WIDTH - PADDLE_W, touchX - PADDLE_W / 2))
+    }));
+  }, [state.isPlaying, state.isPaused]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -256,10 +293,58 @@ export function BreakoutGame({ soundEnabled, onScoreChange, onGameOver }: GamePr
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className="border border-[var(--surface)] rounded-lg" />
+      <canvas 
+        ref={canvasRef} 
+        width={WIDTH} 
+        height={HEIGHT} 
+        className="border border-[var(--surface)] rounded-lg touch-none max-w-full"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+      />
+      {/* Touch controls for mobile */}
+      <div className="flex gap-4 sm:hidden">
+        <button
+          onTouchStart={() => keysRef.current.add('ArrowLeft')}
+          onTouchEnd={() => keysRef.current.delete('ArrowLeft')}
+          className="w-16 h-16 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-8 h-8 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => {
+            if (state.isGameOver || state.won) setState(getInitialState());
+            else if (!state.isPlaying) setState(s => ({ ...s, isPlaying: true }));
+            else setState(s => ({ ...s, isPaused: !s.isPaused }));
+          }}
+          className="w-16 h-16 bg-[var(--blue)] rounded-lg flex items-center justify-center active:opacity-80"
+        >
+          {state.isPlaying && !state.isPaused ? (
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+          ) : (
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
+        </button>
+        <button
+          onTouchStart={() => keysRef.current.add('ArrowRight')}
+          onTouchEnd={() => keysRef.current.delete('ArrowRight')}
+          className="w-16 h-16 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-8 h-8 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
       <div className="text-center text-sm text-[var(--muted)] font-mono">
-        <p>← → or A/D to move</p>
-        <p>SPACE to start/pause</p>
+        <p className="hidden sm:block">← → or A/D to move</p>
+        <p className="hidden sm:block">SPACE to start/pause</p>
+        <p className="sm:hidden">Drag or use buttons to move paddle</p>
+        <p className="sm:hidden">Tap to start/pause</p>
       </div>
     </div>
   );

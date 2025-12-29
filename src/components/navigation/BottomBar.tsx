@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { MoreHorizontal, Search, Palette } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigationItems } from './useNavigationItems';
+import { useFeatureToggles } from '@/lib/hooks/useFeatureToggles';
 import {
   HomeIcon,
   AboutIcon,
@@ -42,6 +43,7 @@ const iconMap: Record<string, (props: { size: number }) => ReactElement> = {
 export function BottomBar({ onTerminal, onCommandPalette, onThemeToggle }: BottomBarProps) {
   const pathname = usePathname();
   const { navItems } = useNavigationItems();
+  const featureToggles = useFeatureToggles();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -124,15 +126,19 @@ export function BottomBar({ onTerminal, onCommandPalette, onThemeToggle }: Botto
           {/* Dropdown menu */}
           {menuOpen && (
             <div className="absolute bottom-full right-0 mb-2 w-48 bg-surface border border-muted/20 rounded-lg shadow-xl overflow-hidden">
-              <Link
-                href="/play"
-                onClick={() => setMenuOpen(false)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-text hover:bg-muted/10 transition-colors"
-              >
-                <ArcadeIcon size={18} className="text-muted" />
-                <span className="text-sm">Arcade</span>
-              </Link>
-              <div className="h-px bg-muted/20" />
+              {featureToggles.games && (
+                <>
+                  <Link
+                    href="/play"
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-text hover:bg-muted/10 transition-colors"
+                  >
+                    <ArcadeIcon size={18} className="text-muted" />
+                    <span className="text-sm">Arcade</span>
+                  </Link>
+                  <div className="h-px bg-muted/20" />
+                </>
+              )}
               <button
                 onClick={() => handleMenuAction(onCommandPalette!)}
                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-text hover:bg-muted/10 transition-colors"
@@ -140,13 +146,15 @@ export function BottomBar({ onTerminal, onCommandPalette, onThemeToggle }: Botto
                 <Search size={18} className="text-muted" />
                 <span className="text-sm">Command Palette</span>
               </button>
-              <button
-                onClick={() => handleMenuAction(onTerminal!)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-text hover:bg-muted/10 transition-colors"
-              >
-                <TerminalIcon size={18} className="text-muted" />
-                <span className="text-sm">Terminal</span>
-              </button>
+              {featureToggles.terminal && (
+                <button
+                  onClick={() => handleMenuAction(onTerminal!)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-text hover:bg-muted/10 transition-colors"
+                >
+                  <TerminalIcon size={18} className="text-muted" />
+                  <span className="text-sm">Terminal</span>
+                </button>
+              )}
               <button
                 onClick={() => handleMenuAction(onThemeToggle!)}
                 className="w-full flex items-center gap-3 px-4 py-3 text-left text-text hover:bg-muted/10 transition-colors"

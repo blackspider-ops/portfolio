@@ -6,6 +6,7 @@ import { PhoneMockProvider } from '@/components/phone-mock';
 import { KonamiCodeProvider } from '@/components/easter-eggs';
 import { CommandPaletteProvider } from '@/components/command-palette';
 import { TerminalProvider } from '@/components/terminal';
+import { FeatureTogglesProvider } from '@/lib/hooks/useFeatureToggles';
 import { JsonLd } from '@/components/seo';
 import { generatePersonJsonLd, generateWebsiteJsonLd } from '@/lib/json-ld';
 import { createClient } from '@/lib/supabase/server';
@@ -123,17 +124,19 @@ export default async function RootLayout({
       <body>
         <SWRProvider>
             <DataPreloader />
-            <ThemeProvider>
-              <KonamiCodeProvider>
-                <CommandPaletteProvider>
-                  <TerminalProvider>
-                    <PhoneMockProvider>
-                      {children}
-                    </PhoneMockProvider>
-                  </TerminalProvider>
-                </CommandPaletteProvider>
-              </KonamiCodeProvider>
-            </ThemeProvider>
+            <FeatureTogglesProvider>
+              <ThemeProvider>
+                <KonamiCodeProvider>
+                  <CommandPaletteProvider>
+                    <TerminalProvider>
+                      <PhoneMockProvider>
+                        {children}
+                      </PhoneMockProvider>
+                    </TerminalProvider>
+                  </CommandPaletteProvider>
+                </KonamiCodeProvider>
+              </ThemeProvider>
+            </FeatureTogglesProvider>
           </SWRProvider>
         <Analytics />
         <ServiceWorkerProvider>{null}</ServiceWorkerProvider>

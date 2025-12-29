@@ -275,6 +275,34 @@ export function CatchGame({ seed = '404', onScoreChange }: CatchGameProps) {
     };
   }, [state.isPlaying, state.isGameOver, seed]);
 
+  // Touch controls
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!state.isPlaying || state.isGameOver) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const touchX = touch.clientX - rect.left;
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const targetX = touchX * scaleX - PADDLE_WIDTH / 2;
+    
+    setState(prev => ({
+      ...prev,
+      paddleX: Math.max(0, Math.min(CANVAS_WIDTH - PADDLE_WIDTH, targetX)),
+    }));
+  }, [state.isPlaying, state.isGameOver]);
+
+  const handleCanvasTap = useCallback(() => {
+    if (state.isGameOver) {
+      randomRef.current = seededRandom(seed);
+      setState(getInitialState());
+    } else if (!state.isPlaying) {
+      setState(prev => ({ ...prev, isPlaying: true }));
+    }
+  }, [state.isPlaying, state.isGameOver, seed]);
+
   // Animation loop
   useEffect(() => {
     const animate = () => {
@@ -293,12 +321,62 @@ export function CatchGame({ seed = '404', onScoreChange }: CatchGameProps) {
   }, [gameLoop, draw]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      className="border border-[var(--surface)] rounded-lg"
-      style={{ imageRendering: 'pixelated' }}
-    />
+    <div className="flex flex-col items-center gap-4">
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="border border-[var(--surface)] rounded-lg touch-none"
+        style={{ imageRendering: 'pixelated' }}
+        onTouchMove={handleTouchMove}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          const startX = e.touches[0].clientX;
+          const timeout = setTimeout(() => {}, 200);
+          const handleTouchEnd = (endEvent: TouchEvent) => {
+            clearTimeout(timeout);
+            const endX = endEvent.changedTouches[0].clientX;
+            if (Math.abs(endX - startX) < 10) {
+              handleCanvasTap();
+            }
+            document.removeEventListener('touchend', handleTouchEnd);
+          };
+          document.addEventListener('touchend', handleTouchEnd, { once: true });
+        }}
+      />
+      {/* Mobile controls */}
+      <div className="flex gap-4 sm:hidden">
+        <button
+          onTouchStart={() => keysRef.current.add('ArrowLeft')}
+          onTouchEnd={() => keysRef.current.delete('ArrowLeft')}
+          className="w-16 h-16 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-8 h-8 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={handleCanvasTap}
+          className="w-16 h-16 bg-[var(--blue)] rounded-lg flex items-center justify-center active:opacity-80"
+        >
+          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </button>
+        <button
+          onTouchStart={() => keysRef.current.add('ArrowRight')}
+          onTouchEnd={() => keysRef.current.delete('ArrowRight')}
+          className="w-16 h-16 bg-[var(--surface)] rounded-lg flex items-center justify-center active:bg-[var(--muted)]/20"
+        >
+          <svg className="w-8 h-8 text-[var(--text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+      <div className="text-center text-sm text-[var(--muted)] font-mono sm:hidden">
+        <p>Drag on screen or use buttons</p>
+        <p>Tap to start</p>
+      </div>
+    </div>
   );
 }

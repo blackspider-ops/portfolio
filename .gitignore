@@ -153,3 +153,9 @@ perfomance_lighthouse.json
 
 # Supabase local
 supabase/.temp/
+
+# Kiro
+.kiro/
+
+# VSCode
+.vscode/

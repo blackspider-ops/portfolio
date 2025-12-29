@@ -123,6 +123,9 @@ export function HomeContent({ initialSettings, children }: HomeContentProps) {
   // Parse CTA config
   const ctaConfig = (settings as Record<string, unknown> | undefined)?.cta_config as CtaConfig | undefined;
 
+  // Parse feature toggles
+  const featureToggles = settings?.feature_toggles as { phone_mock?: boolean; terminal?: boolean; games?: boolean } | undefined;
+
   // CTA action handlers
   const handleCtaAction = (action: 'phone_mock' | 'terminal' | 'link', link?: string) => {
     switch (action) {
@@ -161,6 +164,7 @@ export function HomeContent({ initialSettings, children }: HomeContentProps) {
             primaryCtaText={settings?.primary_cta_text}
             secondaryCtaText={settings?.secondary_cta_text}
             ctaConfig={ctaConfig}
+            featureToggles={featureToggles}
           />
 
           {/* Keyboard hints */}
