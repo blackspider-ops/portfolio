@@ -5,18 +5,21 @@ import { createClient } from '@/lib/supabase/client';
 import { revalidateContent } from '@/app/admin/actions/revalidate';
 import type { Asset } from '@/types/database';
 
-type BucketFilter = 'all' | 'public-images' | 'resume';
+type BucketFilter = 'all' | 'public-images' | 'resume' | 'covers' | 'about';
 
 export default function AdminAssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bucketFilter, setBucketFilter] = useState<BucketFilter>('all');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+
+  const ALL_BUCKETS = ['public-images', 'covers', 'about', 'resume'] as const;
 
   const fetchAssets = useCallback(async () => {
     setIsLoading(true);
@@ -42,6 +45,74 @@ export default function AdminAssetsPage() {
   useEffect(() => {
     fetchAssets();
   }, [fetchAssets]);
+
+  // Sync storage buckets with assets table
+  const syncStorage = async () => {
+    setIsSyncing(true);
+    try {
+      let synced = 0;
+      
+      for (const bucket of ALL_BUCKETS) {
+        // List all files in bucket
+        const { data: files, error: listError } = await supabase.storage
+          .from(bucket)
+          .list('', { limit: 1000 });
+        
+        if (listError) {
+          console.error(`Error listing ${bucket}:`, listError);
+          continue;
+        }
+        
+        if (!files || files.length === 0) continue;
+        
+        for (const file of files) {
+          // Skip folders
+          if (!file.name || file.id === null) continue;
+          
+          // Check if already tracked
+          const { data: existing } = await supabase
+            .from('assets')
+            .select('id')
+            .eq('bucket', bucket)
+            .ilike('original_url', `%${file.name}`)
+            .single();
+          
+          if (existing) continue;
+          
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(file.name);
+          
+          // Insert into assets
+          const { error: insertError } = await supabase.from('assets').insert({
+            filename: file.name,
+            original_url: urlData.publicUrl,
+            bucket: bucket,
+            mime_type: file.metadata?.mimetype || 'application/octet-stream',
+            size_bytes: file.metadata?.size || null,
+            width: null,
+            height: null,
+            variants: {},
+          });
+          
+          if (!insertError) synced++;
+        }
+      }
+      
+      if (synced > 0) {
+        alert(`Synced ${synced} files from storage`);
+        await fetchAssets();
+      } else {
+        alert('All storage files are already tracked');
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Error syncing storage');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -206,17 +277,20 @@ export default function AdminAssetsPage() {
 
     try {
       // Extract filename from URL for storage deletion
+      // URL format: https://xxx.supabase.co/storage/v1/object/public/bucket-name/filename
       const urlParts = asset.original_url.split('/');
       const storageFilename = urlParts[urlParts.length - 1];
+      
+      console.log('Deleting from storage:', asset.bucket, storageFilename);
 
-      // Delete from storage
+      // Delete from storage first
       const { error: storageError } = await supabase.storage
         .from(asset.bucket)
         .remove([storageFilename]);
 
       if (storageError) {
         console.error('Storage delete error:', storageError);
-        // Continue to delete from database even if storage delete fails
+        alert(`Warning: Could not delete file from storage: ${storageError.message}\nThe database record will still be removed.`);
       }
 
       // Delete from database
@@ -273,6 +347,16 @@ export default function AdminAssetsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[var(--text)]">Assets</h1>
         <div className="flex gap-3">
+          <button
+            onClick={syncStorage}
+            disabled={isSyncing}
+            className={`inline-flex items-center gap-2 px-4 py-2 bg-[var(--surface)] text-[var(--text)] text-sm font-medium rounded-lg hover:bg-[var(--surface)]/80 transition-colors border border-[var(--surface)] ${
+              isSyncing ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <SyncIcon className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Syncing...' : 'Sync Storage'}
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -322,8 +406,8 @@ export default function AdminAssetsPage() {
       )}
 
       {/* Bucket Filter */}
-      <div className="flex gap-2 mb-6">
-        {(['all', 'public-images', 'resume'] as BucketFilter[]).map((bucket) => (
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {(['all', 'public-images', 'covers', 'about', 'resume'] as BucketFilter[]).map((bucket) => (
           <button
             key={bucket}
             onClick={() => setBucketFilter(bucket)}
@@ -333,7 +417,7 @@ export default function AdminAssetsPage() {
                 : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]'
             }`}
           >
-            {bucket === 'all' ? 'All' : bucket === 'public-images' ? 'Images' : 'Resume'}
+            {bucket === 'all' ? 'All' : bucket === 'public-images' ? 'Images' : bucket === 'covers' ? 'Covers' : bucket === 'about' ? 'About' : 'Resume'}
           </button>
         ))}
       </div>
@@ -477,10 +561,14 @@ function AssetCard({
           className={`px-2 py-0.5 text-xs font-medium rounded ${
             asset.bucket === 'resume'
               ? 'bg-[var(--violet)]/20 text-[var(--violet)]'
+              : asset.bucket === 'covers'
+              ? 'bg-[var(--green)]/20 text-[var(--green)]'
+              : asset.bucket === 'about'
+              ? 'bg-[var(--orange)]/20 text-[var(--orange)]'
               : 'bg-[var(--blue)]/20 text-[var(--blue)]'
           }`}
         >
-          {asset.bucket === 'resume' ? 'Resume' : 'Image'}
+          {asset.bucket === 'resume' ? 'Resume' : asset.bucket === 'covers' ? 'Cover' : asset.bucket === 'about' ? 'About' : 'Image'}
         </span>
       </div>
     </div>
@@ -696,6 +784,14 @@ function CloseIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function SyncIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
     </svg>
   );
 }
