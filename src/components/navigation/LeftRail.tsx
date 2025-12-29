@@ -52,7 +52,7 @@ interface LeftRailProps {
 export function LeftRail({ onCommandPalette, onTerminal, onThemeToggle }: LeftRailProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { navItems, ownerInitials } = useNavigationItems();
+  const { navItems, ownerInitials, isLoading } = useNavigationItems();
   const featureToggles = useFeatureToggles();
   
   // Track which item was clicked for instant visual feedback
@@ -122,6 +122,46 @@ export function LeftRail({ onCommandPalette, onTerminal, onThemeToggle }: LeftRa
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Don't render nav items until loaded to prevent flash
+  if (isLoading) {
+    return (
+      <aside className="fixed left-0 top-0 h-screen w-[92px] flex-col items-center py-6 bg-[var(--bg)] border-r border-[var(--muted)]/10 z-40 hidden lg:flex">
+        {/* Monogram placeholder */}
+        <div className="w-11 h-11 border border-[var(--muted)]/30 flex items-center justify-center mb-8">
+          <span className="font-heading font-bold text-xl tracking-tighter text-[var(--text)]">{ownerInitials}</span>
+        </div>
+        {/* Empty nav area while loading */}
+        <nav className="flex flex-col items-center gap-1 flex-1" />
+        {/* Utilities still show */}
+        <div className="flex flex-col items-center gap-1 mt-auto">
+          <button 
+            className="relative flex items-center justify-center w-12 h-12 text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 bg-transparent border-none cursor-pointer group"
+            aria-label="Search" 
+            onClick={onCommandPalette}
+          >
+            <Search size={18} />
+          </button>
+          {featureToggles.terminal && (
+            <button 
+              className="relative flex items-center justify-center w-12 h-12 text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 bg-transparent border-none cursor-pointer group"
+              aria-label="Terminal" 
+              onClick={onTerminal}
+            >
+              <TerminalSquare size={18} />
+            </button>
+          )}
+          <button 
+            className="relative flex items-center justify-center w-12 h-12 text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 bg-transparent border-none cursor-pointer group"
+            aria-label="Theme" 
+            onClick={onThemeToggle}
+          >
+            <Palette size={18} />
+          </button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[92px] flex-col items-center py-6 bg-[var(--bg)] border-r border-[var(--muted)]/10 z-40 hidden lg:flex">
