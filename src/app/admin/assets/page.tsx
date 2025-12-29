@@ -293,7 +293,22 @@ export default function AdminAssetsPage() {
         alert(`Warning: Could not delete file from storage: ${storageError.message}\nThe database record will still be removed.`);
       }
 
-      // Delete from database
+      // Clear references in projects and blog posts that use this URL
+      const assetUrl = asset.original_url;
+      
+      // Clear from projects
+      await supabase
+        .from('projects')
+        .update({ cover_url: null })
+        .eq('cover_url', assetUrl);
+      
+      // Clear from blog posts
+      await supabase
+        .from('blog_posts')
+        .update({ cover_url: null })
+        .eq('cover_url', assetUrl);
+
+      // Delete from assets table
       const { error: dbError } = await supabase
         .from('assets')
         .delete()
