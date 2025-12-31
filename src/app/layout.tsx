@@ -140,7 +140,7 @@ export default async function RootLayout({
         <JsonLd data={personJsonLd} />
         <JsonLd data={websiteJsonLd} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <SWRProvider>
             <DataPreloader />
             <FeatureTogglesProvider>

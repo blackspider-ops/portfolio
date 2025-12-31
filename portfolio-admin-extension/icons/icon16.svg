@@ -1,0 +1,10 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="16" height="16" rx="3" fill="url(#gradient)"/>
+  <text x="8" y="11.5" text-anchor="middle" font-family="system-ui" font-weight="700" font-size="8" fill="#050505">TS</text>
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="16" y2="16" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+  </defs>
+</svg>

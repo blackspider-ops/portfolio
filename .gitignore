@@ -159,3 +159,8 @@ supabase/.temp/
 
 # VSCode
 .vscode/
+
+# Mac
+.DS_Store
+
+# Portfolio Admin Extension (personal use only)

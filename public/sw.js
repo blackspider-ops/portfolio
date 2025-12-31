@@ -1,4 +1,4 @@
-const CACHE_NAME = 'portfolio-v3';
+const CACHE_NAME = 'portfolio-v4';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache immediately on install
@@ -58,6 +58,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip _next/webpack-hmr for dev hot reload
   if (url.pathname.includes('webpack-hmr')) return;
+
+  // Skip Vercel analytics/insights scripts
+  if (url.pathname.includes('_vercel/insights') || url.pathname.includes('_vercel/speed-insights')) return;
+
+  // Skip external analytics scripts
+  if (url.hostname.includes('vercel-scripts.com') || url.hostname.includes('cloudflareinsights.com')) return;
 
   event.respondWith(
     (async () => {
