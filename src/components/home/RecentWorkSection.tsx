@@ -19,7 +19,7 @@ function ProjectCard({ project, variant }: { project: Project; variant: 'wide' |
         group relative bg-surface border border-muted/20 rounded-xl overflow-hidden 
         transition-all duration-300 hover:border-blue/50 hover:shadow-lg hover:shadow-blue/5
         focus:outline-none focus:ring-2 focus:ring-blue focus:ring-offset-2 focus:ring-offset-bg
-        ${isWide ? 'col-span-1' : 'row-span-2'}
+        ${isWide ? 'col-span-1' : 'row-span-2 h-full flex flex-col'}
       `}
     >
       {coverUrl && (
@@ -32,7 +32,7 @@ function ProjectCard({ project, variant }: { project: Project; variant: 'wide' |
         </div>
       )}
       
-      <div className={`p-5 ${!coverUrl ? 'pt-6' : ''}`}>
+      <div className={`p-5 ${!coverUrl ? 'pt-6' : ''} ${!isWide ? 'flex-1 flex flex-col' : ''}`}>
         <h3 className="font-heading text-lg text-text mb-2 group-hover:text-blue transition-colors">
           {project.title}
         </h3>
@@ -83,7 +83,7 @@ export function RecentWorkSection({ projects }: RecentWorkSectionProps) {
         </div>
         
         {tallProject && (
-          <div className="md:row-span-2">
+          <div className="md:row-span-2 h-full">
             <ProjectCard project={tallProject} variant="tall" />
           </div>
         )}
