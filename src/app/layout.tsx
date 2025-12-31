@@ -114,6 +114,21 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Inline script to prevent FOUC - runs before page renders */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('tejas-portfolio-theme');
+                  if (theme && ['dark', 'cyber', 'dracula', 'solarized'].includes(theme) && theme !== 'dark') {
+                    document.documentElement.setAttribute('data-theme', theme);
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         {/* Preconnect to external domains for faster loading */}
         <link rel="preconnect" href="https://xplifhqnkmofhmrwkejf.supabase.co" />
         <link rel="dns-prefetch" href="https://xplifhqnkmofhmrwkejf.supabase.co" />
