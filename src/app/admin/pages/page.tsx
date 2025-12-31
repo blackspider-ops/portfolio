@@ -209,12 +209,29 @@ export default function AdminPagesPage() {
         }
         
         // Resume content - ensure all required fields have defaults
-        const resume = settings.resume_content as Partial<ResumeContent> | null;
+        const resume = settings.resume_content as Partial<ResumeContent & { skills?: string[] | { languages?: string[]; frameworks?: string[]; ml_ds?: string[]; platforms_tools?: string[]; networking_sec?: string[] } }> | null;
         if (resume) {
+          // Handle skills - can be array or categorized object
+          let flatSkills: string[] = [];
+          if (resume.skills) {
+            if (Array.isArray(resume.skills)) {
+              flatSkills = resume.skills;
+            } else if (typeof resume.skills === 'object') {
+              const s = resume.skills as { languages?: string[]; frameworks?: string[]; ml_ds?: string[]; platforms_tools?: string[]; networking_sec?: string[] };
+              flatSkills = [
+                ...(s.languages || []),
+                ...(s.frameworks || []),
+                ...(s.ml_ds || []),
+                ...(s.platforms_tools || []),
+                ...(s.networking_sec || []),
+              ];
+            }
+          }
+          
           setResumeContent({
             objective: resume.objective || '',
             education: Array.isArray(resume.education) ? resume.education : [],
-            skills: Array.isArray(resume.skills) ? resume.skills : [],
+            skills: flatSkills,
             experience: Array.isArray(resume.experience) ? resume.experience : [],
             research: Array.isArray(resume.research) ? resume.research : [],
             projects: Array.isArray(resume.projects) ? resume.projects : [],
