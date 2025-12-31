@@ -318,8 +318,12 @@ export function SnakeGame({ soundEnabled, onScoreChange, onGameOver }: GameProps
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ') {
+      // Prevent arrow keys from scrolling the page when game is active
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
+      }
+
+      if (e.key === ' ') {
         if (state.isGameOver) {
           setState(getInitialState());
         } else if (!state.isPlaying) {

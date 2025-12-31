@@ -249,8 +249,12 @@ export function CatchGame({ seed = '404', onScoreChange }: CatchGameProps) {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ') {
+      // Prevent arrow keys from scrolling the page when game is active
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
+      }
+
+      if (e.key === ' ') {
         if (state.isGameOver) {
           randomRef.current = seededRandom(seed); // Reset random with same seed
           setState(getInitialState());

@@ -185,11 +185,15 @@ export function BreakoutGame({ soundEnabled, onScoreChange, onGameOver }: GamePr
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Prevent arrow keys from scrolling the page when game is active
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+
       if (e.type === 'keydown') keysRef.current.add(e.key);
       else keysRef.current.delete(e.key);
 
       if (e.key === ' ' && e.type === 'keydown') {
-        e.preventDefault();
         if (state.isGameOver || state.won) setState(getInitialState());
         else if (!state.isPlaying) setState(s => ({ ...s, isPlaying: true }));
         else setState(s => ({ ...s, isPaused: !s.isPaused }));
