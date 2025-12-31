@@ -15,14 +15,41 @@ type SocialLinks = {
 
 type Education = {
   institution: string;
-  details: string;
+  location?: string;
+  details?: string;
   degree: string;
+  gpa?: string;
+  timeline?: string;
   customFields?: { key: string; value: string }[];
+};
+
+type Experience = {
+  role: string;
+  company: string;
+  location?: string;
+  timeline?: string;
+  bullets?: string[];
+};
+
+type Research = {
+  title: string;
+  timeline?: string;
+  details?: string;
+  bullets?: string[];
+};
+
+type Project = {
+  title: string;
+  timeline?: string;
+  bullets?: string[];
 };
 
 type Leadership = {
   title: string;
   role: string;
+  location?: string;
+  timeline?: string;
+  details?: string;
   customFields?: { key: string; value: string }[];
 };
 
@@ -49,16 +76,24 @@ type BuiltInSectionConfig = {
 };
 
 type ResumeContent = {
+  objective?: string;
   education: Education[];
   skills: string[];
-  experience_note: string;
+  experience: Experience[];
+  research: Research[];
+  projects: Project[];
   leadership: Leadership[];
+  awards: string[];
   customSections?: CustomSection[];
   sectionConfig?: {
+    objective?: BuiltInSectionConfig;
     education?: BuiltInSectionConfig;
     skills?: BuiltInSectionConfig;
     experience?: BuiltInSectionConfig;
     leadership?: BuiltInSectionConfig;
+    research?: BuiltInSectionConfig;
+    projects?: BuiltInSectionConfig;
+    awards?: BuiltInSectionConfig;
   };
 };
 
@@ -105,12 +140,17 @@ export default function AdminPagesPage() {
 
   // Resume page content
   const [resumeContent, setResumeContent] = useState<ResumeContent>({
+    objective: '',
     education: [],
     skills: [],
-    experience_note: '',
+    experience: [],
+    research: [],
+    projects: [],
     leadership: [],
+    awards: [],
   });
   const [newSkill, setNewSkill] = useState('');
+  const [newAward, setNewAward] = useState('');
 
   // Contact page content
   const [contactPage, setContactPage] = useState<ContactPage>({
@@ -172,10 +212,14 @@ export default function AdminPagesPage() {
         const resume = settings.resume_content as Partial<ResumeContent> | null;
         if (resume) {
           setResumeContent({
+            objective: resume.objective || '',
             education: Array.isArray(resume.education) ? resume.education : [],
             skills: Array.isArray(resume.skills) ? resume.skills : [],
-            experience_note: resume.experience_note || '',
+            experience: Array.isArray(resume.experience) ? resume.experience : [],
+            research: Array.isArray(resume.research) ? resume.research : [],
+            projects: Array.isArray(resume.projects) ? resume.projects : [],
             leadership: Array.isArray(resume.leadership) ? resume.leadership : [],
+            awards: Array.isArray(resume.awards) ? resume.awards : [],
             customSections: Array.isArray(resume.customSections) ? resume.customSections : [],
             sectionConfig: resume.sectionConfig || undefined,
           });
@@ -375,19 +419,25 @@ export default function AdminPagesPage() {
 
   // Section config helpers
   const defaultSectionConfig = {
-    education: { icon: 'graduation', color: 'violet', order: 0, visible: true },
+    objective: { icon: 'star', color: 'blue', order: 0, visible: true },
     skills: { icon: 'code', color: 'blue', order: 1, visible: true },
-    experience: { icon: 'briefcase', color: 'green', order: 2, visible: true },
-    leadership: { icon: 'star', color: 'violet', order: 3, visible: true },
+    education: { icon: 'graduation', color: 'green', order: 2, visible: true },
+    experience: { icon: 'briefcase', color: 'orange', order: 3, visible: true },
+    research: { icon: 'research', color: 'violet', order: 4, visible: true },
+    projects: { icon: 'code', color: 'blue', order: 5, visible: true },
+    leadership: { icon: 'star', color: 'yellow', order: 6, visible: true },
+    awards: { icon: 'trophy', color: 'green', order: 7, visible: true },
   };
 
-  const getSectionConfig = (section: 'education' | 'skills' | 'experience' | 'leadership') => {
-    return resumeContent.sectionConfig?.[section] || defaultSectionConfig[section];
+  type SectionKey = 'objective' | 'skills' | 'education' | 'experience' | 'research' | 'projects' | 'leadership' | 'awards';
+
+  const getSectionConfig = (section: SectionKey) => {
+    return resumeContent.sectionConfig?.[section as keyof typeof resumeContent.sectionConfig] || defaultSectionConfig[section];
   };
 
-  const updateSectionConfig = (section: 'education' | 'skills' | 'experience' | 'leadership', updates: Partial<BuiltInSectionConfig>) => {
+  const updateSectionConfig = (section: SectionKey, updates: Partial<BuiltInSectionConfig>) => {
     const currentConfig = resumeContent.sectionConfig || {};
-    const sectionCurrent = currentConfig[section] || defaultSectionConfig[section];
+    const sectionCurrent = currentConfig[section as keyof typeof currentConfig] || defaultSectionConfig[section];
     setResumeContent({
       ...resumeContent,
       sectionConfig: {
@@ -407,7 +457,8 @@ export default function AdminPagesPage() {
   };
 
   const getAllSectionsSorted = (): UnifiedSection[] => {
-    const builtIn: UnifiedSection[] = (['education', 'skills', 'experience', 'leadership'] as const).map(key => ({
+    const builtInKeys: SectionKey[] = ['objective', 'skills', 'education', 'experience', 'research', 'projects', 'leadership', 'awards'];
+    const builtIn: UnifiedSection[] = builtInKeys.map(key => ({
       type: 'builtin',
       id: key,
       name: key.charAt(0).toUpperCase() + key.slice(1),
@@ -436,17 +487,17 @@ export default function AdminPagesPage() {
     const order2 = section2.order;
     
     // Build updates
-    const configUpdates: Partial<Record<'education' | 'skills' | 'experience' | 'leadership', Partial<BuiltInSectionConfig>>> = {};
+    const configUpdates: Partial<Record<SectionKey, Partial<BuiltInSectionConfig>>> = {};
     const customUpdates: Record<string, number> = {};
     
     if (section1.type === 'builtin') {
-      configUpdates[section1.id as 'education' | 'skills' | 'experience' | 'leadership'] = { order: order2 };
+      configUpdates[section1.id as SectionKey] = { order: order2 };
     } else {
       customUpdates[section1.id] = order2;
     }
     
     if (section2.type === 'builtin') {
-      configUpdates[section2.id as 'education' | 'skills' | 'experience' | 'leadership'] = { order: order1 };
+      configUpdates[section2.id as SectionKey] = { order: order1 };
     } else {
       customUpdates[section2.id] = order1;
     }
@@ -455,7 +506,7 @@ export default function AdminPagesPage() {
     setResumeContent(prev => {
       const newSectionConfig = { ...prev.sectionConfig };
       for (const [key, updates] of Object.entries(configUpdates)) {
-        const sectionKey = key as 'education' | 'skills' | 'experience' | 'leadership';
+        const sectionKey = key as SectionKey;
         newSectionConfig[sectionKey] = { 
           ...(newSectionConfig[sectionKey] || defaultSectionConfig[sectionKey]), 
           ...updates 
@@ -529,6 +580,153 @@ export default function AdminPagesPage() {
     setResumeContent({
       ...resumeContent,
       leadership: resumeContent.leadership.filter((_, i) => i !== index),
+    });
+  };
+
+  // Experience helpers
+  const addExperience = () => {
+    setResumeContent({
+      ...resumeContent,
+      experience: [...resumeContent.experience, { role: '', company: '', location: '', timeline: '', bullets: [] }],
+    });
+  };
+
+  const updateExperience = (index: number, field: keyof Experience, value: string | string[]) => {
+    const updated = [...resumeContent.experience];
+    updated[index] = { ...updated[index], [field]: value };
+    setResumeContent({ ...resumeContent, experience: updated });
+  };
+
+  const removeExperience = (index: number) => {
+    setResumeContent({
+      ...resumeContent,
+      experience: resumeContent.experience.filter((_, i) => i !== index),
+    });
+  };
+
+  const addExperienceBullet = (expIndex: number) => {
+    const updated = [...resumeContent.experience];
+    const bullets = updated[expIndex].bullets || [];
+    updated[expIndex] = { ...updated[expIndex], bullets: [...bullets, ''] };
+    setResumeContent({ ...resumeContent, experience: updated });
+  };
+
+  const updateExperienceBullet = (expIndex: number, bulletIndex: number, value: string) => {
+    const updated = [...resumeContent.experience];
+    const bullets = [...(updated[expIndex].bullets || [])];
+    bullets[bulletIndex] = value;
+    updated[expIndex] = { ...updated[expIndex], bullets };
+    setResumeContent({ ...resumeContent, experience: updated });
+  };
+
+  const removeExperienceBullet = (expIndex: number, bulletIndex: number) => {
+    const updated = [...resumeContent.experience];
+    const bullets = (updated[expIndex].bullets || []).filter((_, i) => i !== bulletIndex);
+    updated[expIndex] = { ...updated[expIndex], bullets };
+    setResumeContent({ ...resumeContent, experience: updated });
+  };
+
+  // Research helpers
+  const addResearch = () => {
+    setResumeContent({
+      ...resumeContent,
+      research: [...resumeContent.research, { title: '', timeline: '', details: '', bullets: [] }],
+    });
+  };
+
+  const updateResearch = (index: number, field: keyof Research, value: string | string[]) => {
+    const updated = [...resumeContent.research];
+    updated[index] = { ...updated[index], [field]: value };
+    setResumeContent({ ...resumeContent, research: updated });
+  };
+
+  const removeResearch = (index: number) => {
+    setResumeContent({
+      ...resumeContent,
+      research: resumeContent.research.filter((_, i) => i !== index),
+    });
+  };
+
+  const addResearchBullet = (resIndex: number) => {
+    const updated = [...resumeContent.research];
+    const bullets = updated[resIndex].bullets || [];
+    updated[resIndex] = { ...updated[resIndex], bullets: [...bullets, ''] };
+    setResumeContent({ ...resumeContent, research: updated });
+  };
+
+  const updateResearchBullet = (resIndex: number, bulletIndex: number, value: string) => {
+    const updated = [...resumeContent.research];
+    const bullets = [...(updated[resIndex].bullets || [])];
+    bullets[bulletIndex] = value;
+    updated[resIndex] = { ...updated[resIndex], bullets };
+    setResumeContent({ ...resumeContent, research: updated });
+  };
+
+  const removeResearchBullet = (resIndex: number, bulletIndex: number) => {
+    const updated = [...resumeContent.research];
+    const bullets = (updated[resIndex].bullets || []).filter((_, i) => i !== bulletIndex);
+    updated[resIndex] = { ...updated[resIndex], bullets };
+    setResumeContent({ ...resumeContent, research: updated });
+  };
+
+  // Project helpers
+  const addProject = () => {
+    setResumeContent({
+      ...resumeContent,
+      projects: [...resumeContent.projects, { title: '', timeline: '', bullets: [] }],
+    });
+  };
+
+  const updateProject = (index: number, field: keyof Project, value: string | string[]) => {
+    const updated = [...resumeContent.projects];
+    updated[index] = { ...updated[index], [field]: value };
+    setResumeContent({ ...resumeContent, projects: updated });
+  };
+
+  const removeProject = (index: number) => {
+    setResumeContent({
+      ...resumeContent,
+      projects: resumeContent.projects.filter((_, i) => i !== index),
+    });
+  };
+
+  const addProjectBullet = (projIndex: number) => {
+    const updated = [...resumeContent.projects];
+    const bullets = updated[projIndex].bullets || [];
+    updated[projIndex] = { ...updated[projIndex], bullets: [...bullets, ''] };
+    setResumeContent({ ...resumeContent, projects: updated });
+  };
+
+  const updateProjectBullet = (projIndex: number, bulletIndex: number, value: string) => {
+    const updated = [...resumeContent.projects];
+    const bullets = [...(updated[projIndex].bullets || [])];
+    bullets[bulletIndex] = value;
+    updated[projIndex] = { ...updated[projIndex], bullets };
+    setResumeContent({ ...resumeContent, projects: updated });
+  };
+
+  const removeProjectBullet = (projIndex: number, bulletIndex: number) => {
+    const updated = [...resumeContent.projects];
+    const bullets = (updated[projIndex].bullets || []).filter((_, i) => i !== bulletIndex);
+    updated[projIndex] = { ...updated[projIndex], bullets };
+    setResumeContent({ ...resumeContent, projects: updated });
+  };
+
+  // Award helpers
+  const addAward = () => {
+    if (newAward.trim() && !resumeContent.awards.includes(newAward.trim())) {
+      setResumeContent({
+        ...resumeContent,
+        awards: [...resumeContent.awards, newAward.trim()],
+      });
+      setNewAward('');
+    }
+  };
+
+  const removeAward = (index: number) => {
+    setResumeContent({
+      ...resumeContent,
+      awards: resumeContent.awards.filter((_, i) => i !== index),
     });
   };
 
@@ -757,14 +955,36 @@ export default function AdminPagesPage() {
             resumeContent={resumeContent}
             newSkill={newSkill}
             setNewSkill={setNewSkill}
+            newAward={newAward}
+            setNewAward={setNewAward}
             addSkill={addSkill}
             removeSkill={removeSkill}
+            addAward={addAward}
+            removeAward={removeAward}
             addEducation={addEducation}
             updateEducation={updateEducation}
             removeEducation={removeEducation}
             addEducationCustomField={addEducationCustomField}
             updateEducationCustomField={updateEducationCustomField}
             removeEducationCustomField={removeEducationCustomField}
+            addExperience={addExperience}
+            updateExperience={updateExperience}
+            removeExperience={removeExperience}
+            addExperienceBullet={addExperienceBullet}
+            updateExperienceBullet={updateExperienceBullet}
+            removeExperienceBullet={removeExperienceBullet}
+            addResearch={addResearch}
+            updateResearch={updateResearch}
+            removeResearch={removeResearch}
+            addResearchBullet={addResearchBullet}
+            updateResearchBullet={updateResearchBullet}
+            removeResearchBullet={removeResearchBullet}
+            addProject={addProject}
+            updateProject={updateProject}
+            removeProject={removeProject}
+            addProjectBullet={addProjectBullet}
+            updateProjectBullet={updateProjectBullet}
+            removeProjectBullet={removeProjectBullet}
             addLeadership={addLeadership}
             updateLeadership={updateLeadership}
             removeLeadership={removeLeadership}
@@ -1372,14 +1592,36 @@ function ResumePageTab({
   resumeContent,
   newSkill,
   setNewSkill,
+  newAward,
+  setNewAward,
   addSkill,
   removeSkill,
+  addAward,
+  removeAward,
   addEducation,
   updateEducation,
   removeEducation,
   addEducationCustomField,
   updateEducationCustomField,
   removeEducationCustomField,
+  addExperience,
+  updateExperience,
+  removeExperience,
+  addExperienceBullet,
+  updateExperienceBullet,
+  removeExperienceBullet,
+  addResearch,
+  updateResearch,
+  removeResearch,
+  addResearchBullet,
+  updateResearchBullet,
+  removeResearchBullet,
+  addProject,
+  updateProject,
+  removeProject,
+  addProjectBullet,
+  updateProjectBullet,
+  removeProjectBullet,
   addLeadership,
   updateLeadership,
   removeLeadership,
@@ -1408,22 +1650,44 @@ function ResumePageTab({
   resumeContent: ResumeContent;
   newSkill: string;
   setNewSkill: (v: string) => void;
+  newAward: string;
+  setNewAward: (v: string) => void;
   addSkill: () => void;
   removeSkill: (i: number) => void;
+  addAward: () => void;
+  removeAward: (i: number) => void;
   addEducation: () => void;
   updateEducation: (i: number, field: keyof Education, value: string) => void;
   removeEducation: (i: number) => void;
   addEducationCustomField: (eduIndex: number) => void;
   updateEducationCustomField: (eduIndex: number, fieldIndex: number, key: string, value: string) => void;
   removeEducationCustomField: (eduIndex: number, fieldIndex: number) => void;
+  addExperience: () => void;
+  updateExperience: (i: number, field: keyof Experience, value: string | string[]) => void;
+  removeExperience: (i: number) => void;
+  addExperienceBullet: (expIndex: number) => void;
+  updateExperienceBullet: (expIndex: number, bulletIndex: number, value: string) => void;
+  removeExperienceBullet: (expIndex: number, bulletIndex: number) => void;
+  addResearch: () => void;
+  updateResearch: (i: number, field: keyof Research, value: string | string[]) => void;
+  removeResearch: (i: number) => void;
+  addResearchBullet: (resIndex: number) => void;
+  updateResearchBullet: (resIndex: number, bulletIndex: number, value: string) => void;
+  removeResearchBullet: (resIndex: number, bulletIndex: number) => void;
+  addProject: () => void;
+  updateProject: (i: number, field: keyof Project, value: string | string[]) => void;
+  removeProject: (i: number) => void;
+  addProjectBullet: (projIndex: number) => void;
+  updateProjectBullet: (projIndex: number, bulletIndex: number, value: string) => void;
+  removeProjectBullet: (projIndex: number, bulletIndex: number) => void;
   addLeadership: () => void;
   updateLeadership: (i: number, field: keyof Leadership, value: string) => void;
   removeLeadership: (i: number) => void;
   addLeadershipCustomField: (leadIndex: number) => void;
   updateLeadershipCustomField: (leadIndex: number, fieldIndex: number, key: string, value: string) => void;
   removeLeadershipCustomField: (leadIndex: number, fieldIndex: number) => void;
-  getSectionConfig: (section: 'education' | 'skills' | 'experience' | 'leadership') => BuiltInSectionConfig;
-  updateSectionConfig: (section: 'education' | 'skills' | 'experience' | 'leadership', updates: Partial<BuiltInSectionConfig>) => void;
+  getSectionConfig: (section: 'objective' | 'skills' | 'education' | 'experience' | 'research' | 'projects' | 'leadership' | 'awards') => BuiltInSectionConfig;
+  updateSectionConfig: (section: 'objective' | 'skills' | 'education' | 'experience' | 'research' | 'projects' | 'leadership' | 'awards', updates: Partial<BuiltInSectionConfig>) => void;
   getAllSectionsSorted: () => { type: 'builtin' | 'custom'; id: string; name: string; order: number; icon: string }[];
   swapSectionOrder: (index1: number, index2: number) => void;
   addCustomSection: () => void;
@@ -1549,10 +1813,15 @@ function ResumePageTab({
         
         // Merge extracted content with existing (don't overwrite if empty)
         setResumeContent({
-          education: extracted.education.length > 0 ? extracted.education : resumeContent.education,
-          skills: extracted.skills.length > 0 ? extracted.skills : resumeContent.skills,
-          experience_note: extracted.experience_note || resumeContent.experience_note,
-          leadership: extracted.leadership.length > 0 ? extracted.leadership : resumeContent.leadership,
+          ...resumeContent,
+          objective: extracted.objective || resumeContent.objective,
+          education: extracted.education?.length > 0 ? extracted.education : resumeContent.education,
+          skills: extracted.skills?.length > 0 ? extracted.skills : resumeContent.skills,
+          experience: extracted.experience?.length > 0 ? extracted.experience : resumeContent.experience,
+          research: extracted.research?.length > 0 ? extracted.research : resumeContent.research,
+          projects: extracted.projects?.length > 0 ? extracted.projects : resumeContent.projects,
+          leadership: extracted.leadership?.length > 0 ? extracted.leadership : resumeContent.leadership,
+          awards: extracted.awards?.length > 0 ? extracted.awards : resumeContent.awards,
         });
         
         setUploadStatus('Content extracted! Review and save.');
@@ -1755,16 +2024,25 @@ function ResumePageTab({
                 <span className="text-xs text-[var(--muted)]">Education #{index + 1}</span>
                 <button onClick={() => removeEducation(index)} className="text-red-400 hover:text-red-300 text-sm">Remove</button>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={edu.institution}
+                  onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                  placeholder="Institution name"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={edu.location || ''}
+                  onChange={(e) => updateEducation(index, 'location', e.target.value)}
+                  placeholder="Location"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
               <input
                 type="text"
-                value={edu.institution}
-                onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                placeholder="Institution name"
-                className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
-              />
-              <input
-                type="text"
-                value={edu.details}
+                value={edu.details || ''}
                 onChange={(e) => updateEducation(index, 'details', e.target.value)}
                 placeholder="Details (e.g., Honors College)"
                 className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
@@ -1776,6 +2054,22 @@ function ResumePageTab({
                 placeholder="Degree"
                 className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
               />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={edu.gpa || ''}
+                  onChange={(e) => updateEducation(index, 'gpa', e.target.value)}
+                  placeholder="GPA (e.g., 3.80)"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={edu.timeline || ''}
+                  onChange={(e) => updateEducation(index, 'timeline', e.target.value)}
+                  placeholder="Timeline (e.g., Aug 2024 - May 2028)"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
               {/* Custom Fields */}
               {edu.customFields && edu.customFields.length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-[var(--surface)]">
@@ -1786,14 +2080,14 @@ function ResumePageTab({
                         type="text"
                         value={field.key}
                         onChange={(e) => updateEducationCustomField(index, fieldIndex, e.target.value, field.value)}
-                        placeholder="Field name (e.g., GPA)"
+                        placeholder="Field name"
                         className="w-1/3 px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
                       />
                       <input
                         type="text"
                         value={field.value}
                         onChange={(e) => updateEducationCustomField(index, fieldIndex, field.key, e.target.value)}
-                        placeholder="Value (e.g., 3.9)"
+                        placeholder="Value"
                         className="flex-1 px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
                       />
                       <button
@@ -1888,55 +2182,219 @@ function ResumePageTab({
         </div>
       </section>
 
-      {/* Experience Note */}
+      {/* Objective Section */}
       <section className="bg-[var(--surface)] rounded-lg p-6 border border-[var(--surface)]">
-        <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Experience Note</h2>
-        
-        {/* Icon and Color Selection */}
-        <div className="mb-4 p-3 bg-[var(--bg)] rounded-lg space-y-3">
-          <div>
-            <span className="text-xs text-[var(--muted)] block mb-2">Icon</span>
-            <div className="flex flex-wrap gap-1">
-              {SECTION_ICONS.map((icon) => (
-                <button
-                  key={icon.id}
-                  onClick={() => updateSectionConfig('experience', { icon: icon.id })}
-                  className={`w-8 h-8 rounded flex items-center justify-center text-sm transition-colors ${
-                    getSectionConfig('experience').icon === icon.id
-                      ? 'bg-[var(--blue)] text-white'
-                      : 'bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface)]/80'
-                  }`}
-                  title={icon.label}
-                >
-                  {icon.icon}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <span className="text-xs text-[var(--muted)] block mb-2">Color</span>
-            <div className="flex flex-wrap gap-1">
-              {SECTION_COLORS.map((color) => (
-                <button
-                  key={color.id}
-                  onClick={() => updateSectionConfig('experience', { color: color.id })}
-                  className={`w-6 h-6 rounded-full ${color.class} transition-transform ${
-                    getSectionConfig('experience').color === color.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[var(--bg)] scale-110' : ''
-                  }`}
-                  title={color.label}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
+        <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Objective</h2>
         <textarea
-          value={resumeContent.experience_note}
-          onChange={(e) => setResumeContent({ ...resumeContent, experience_note: e.target.value })}
+          value={resumeContent.objective || ''}
+          onChange={(e) => setResumeContent({ ...resumeContent, objective: e.target.value })}
           rows={3}
-          placeholder="Note about experience section..."
+          placeholder="Your career objective..."
           className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm resize-none"
         />
+      </section>
+
+      {/* Experience Section */}
+      <section className="bg-[var(--surface)] rounded-lg p-6 border border-[var(--surface)]">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text)]">Experience</h2>
+          <button
+            onClick={addExperience}
+            className="px-3 py-1 text-sm bg-[var(--blue)] text-white rounded-lg hover:bg-[var(--blue)]/90"
+          >
+            + Add
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {Array.isArray(resumeContent.experience) && resumeContent.experience.map((exp, index) => (
+            <div key={index} className="p-4 bg-[var(--bg)] rounded-lg space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="text-xs text-[var(--muted)]">Experience #{index + 1}</span>
+                <button onClick={() => removeExperience(index)} className="text-red-400 hover:text-red-300 text-sm">Remove</button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={exp.role}
+                  onChange={(e) => updateExperience(index, 'role', e.target.value)}
+                  placeholder="Role/Title"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={exp.company}
+                  onChange={(e) => updateExperience(index, 'company', e.target.value)}
+                  placeholder="Company"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={exp.timeline || ''}
+                  onChange={(e) => updateExperience(index, 'timeline', e.target.value)}
+                  placeholder="Timeline (e.g., Jan 2024 - Present)"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={exp.location || ''}
+                  onChange={(e) => updateExperience(index, 'location', e.target.value)}
+                  placeholder="Location"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
+              {/* Bullets */}
+              <div className="space-y-2">
+                <span className="text-xs text-[var(--muted)]">Bullet Points</span>
+                {(exp.bullets || []).map((bullet, bulletIndex) => (
+                  <div key={bulletIndex} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={bullet}
+                      onChange={(e) => updateExperienceBullet(index, bulletIndex, e.target.value)}
+                      placeholder="Bullet point..."
+                      className="flex-1 px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                    />
+                    <button onClick={() => removeExperienceBullet(index, bulletIndex)} className="px-2 text-red-400 hover:text-red-300">×</button>
+                  </div>
+                ))}
+                <button onClick={() => addExperienceBullet(index)} className="text-xs text-[var(--blue)] hover:text-[var(--blue)]/80">+ Add Bullet</button>
+              </div>
+            </div>
+          ))}
+          {(!resumeContent.experience || resumeContent.experience.length === 0) && (
+            <p className="text-[var(--muted)] text-sm">No experience entries. Click &quot;+ Add&quot; to add one.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Research Section */}
+      <section className="bg-[var(--surface)] rounded-lg p-6 border border-[var(--surface)]">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text)]">Research</h2>
+          <button
+            onClick={addResearch}
+            className="px-3 py-1 text-sm bg-[var(--blue)] text-white rounded-lg hover:bg-[var(--blue)]/90"
+          >
+            + Add
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {Array.isArray(resumeContent.research) && resumeContent.research.map((res, index) => (
+            <div key={index} className="p-4 bg-[var(--bg)] rounded-lg space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="text-xs text-[var(--muted)]">Research #{index + 1}</span>
+                <button onClick={() => removeResearch(index)} className="text-red-400 hover:text-red-300 text-sm">Remove</button>
+              </div>
+              <input
+                type="text"
+                value={res.title}
+                onChange={(e) => updateResearch(index, 'title', e.target.value)}
+                placeholder="Research Title"
+                className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={res.timeline || ''}
+                  onChange={(e) => updateResearch(index, 'timeline', e.target.value)}
+                  placeholder="Timeline"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={res.details || ''}
+                  onChange={(e) => updateResearch(index, 'details', e.target.value)}
+                  placeholder="Details (e.g., arXiv target)"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
+              {/* Bullets */}
+              <div className="space-y-2">
+                <span className="text-xs text-[var(--muted)]">Bullet Points</span>
+                {(res.bullets || []).map((bullet, bulletIndex) => (
+                  <div key={bulletIndex} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={bullet}
+                      onChange={(e) => updateResearchBullet(index, bulletIndex, e.target.value)}
+                      placeholder="Bullet point..."
+                      className="flex-1 px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                    />
+                    <button onClick={() => removeResearchBullet(index, bulletIndex)} className="px-2 text-red-400 hover:text-red-300">×</button>
+                  </div>
+                ))}
+                <button onClick={() => addResearchBullet(index)} className="text-xs text-[var(--blue)] hover:text-[var(--blue)]/80">+ Add Bullet</button>
+              </div>
+            </div>
+          ))}
+          {(!resumeContent.research || resumeContent.research.length === 0) && (
+            <p className="text-[var(--muted)] text-sm">No research entries. Click &quot;+ Add&quot; to add one.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Projects Section */}
+      <section className="bg-[var(--surface)] rounded-lg p-6 border border-[var(--surface)]">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text)]">Projects</h2>
+          <button
+            onClick={addProject}
+            className="px-3 py-1 text-sm bg-[var(--blue)] text-white rounded-lg hover:bg-[var(--blue)]/90"
+          >
+            + Add
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {Array.isArray(resumeContent.projects) && resumeContent.projects.map((proj, index) => (
+            <div key={index} className="p-4 bg-[var(--bg)] rounded-lg space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="text-xs text-[var(--muted)]">Project #{index + 1}</span>
+                <button onClick={() => removeProject(index)} className="text-red-400 hover:text-red-300 text-sm">Remove</button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={proj.title}
+                  onChange={(e) => updateProject(index, 'title', e.target.value)}
+                  placeholder="Project Title"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={proj.timeline || ''}
+                  onChange={(e) => updateProject(index, 'timeline', e.target.value)}
+                  placeholder="Timeline"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
+              {/* Bullets */}
+              <div className="space-y-2">
+                <span className="text-xs text-[var(--muted)]">Bullet Points</span>
+                {(proj.bullets || []).map((bullet, bulletIndex) => (
+                  <div key={bulletIndex} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={bullet}
+                      onChange={(e) => updateProjectBullet(index, bulletIndex, e.target.value)}
+                      placeholder="Bullet point..."
+                      className="flex-1 px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                    />
+                    <button onClick={() => removeProjectBullet(index, bulletIndex)} className="px-2 text-red-400 hover:text-red-300">×</button>
+                  </div>
+                ))}
+                <button onClick={() => addProjectBullet(index)} className="text-xs text-[var(--blue)] hover:text-[var(--blue)]/80">+ Add Bullet</button>
+              </div>
+            </div>
+          ))}
+          {(!resumeContent.projects || resumeContent.projects.length === 0) && (
+            <p className="text-[var(--muted)] text-sm">No project entries. Click &quot;+ Add&quot; to add one.</p>
+          )}
+        </div>
       </section>
 
       {/* Leadership Section */}
@@ -2010,6 +2468,29 @@ function ResumePageTab({
                 placeholder="Role"
                 className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
               />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={lead.timeline || ''}
+                  onChange={(e) => updateLeadership(index, 'timeline', e.target.value)}
+                  placeholder="Timeline (e.g., Sep 2025 - Present)"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+                <input
+                  type="text"
+                  value={lead.location || ''}
+                  onChange={(e) => updateLeadership(index, 'location', e.target.value)}
+                  placeholder="Location"
+                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+                />
+              </div>
+              <input
+                type="text"
+                value={lead.details || ''}
+                onChange={(e) => updateLeadership(index, 'details', e.target.value)}
+                placeholder="Details/Description"
+                className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+              />
               {/* Custom Fields */}
               {lead.customFields && lead.customFields.length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-[var(--surface)]">
@@ -2051,6 +2532,35 @@ function ResumePageTab({
           {resumeContent.leadership.length === 0 && (
             <p className="text-[var(--muted)] text-sm">No leadership entries. Click &quot;+ Add&quot; to add one.</p>
           )}
+        </div>
+      </section>
+
+      {/* Awards Section */}
+      <section className="bg-[var(--surface)] rounded-lg p-6 border border-[var(--surface)]">
+        <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Awards</h2>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {Array.isArray(resumeContent.awards) && resumeContent.awards.map((award, index) => (
+            <span
+              key={index}
+              className="px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--text)] rounded-lg border border-[var(--surface)] flex items-center gap-2"
+            >
+              {award}
+              <button onClick={() => removeAward(index)} className="text-[var(--muted)] hover:text-red-400">×</button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newAward}
+            onChange={(e) => setNewAward(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAward())}
+            placeholder="Add an award"
+            className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--surface)] rounded-lg text-[var(--text)] text-sm"
+          />
+          <button onClick={addAward} className="px-4 py-2 bg-[var(--blue)] text-white text-sm rounded-lg hover:bg-[var(--blue)]/90">
+            Add
+          </button>
         </div>
       </section>
 
