@@ -14,7 +14,7 @@ export function SignalsRow({ signals }: SignalsRowProps) {
   if (!signals || signals.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" data-nosnippet>
       {signals.map((signal) => (
         <div
           key={signal.id}

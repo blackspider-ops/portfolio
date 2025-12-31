@@ -74,7 +74,7 @@ export default function HeroCtaButtons({
   if (!showPrimary && !showSecondary) return null;
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-3" data-nosnippet>
       {showPrimary && (
         <button
           onClick={() => handleCtaAction(ctaConfig?.primary_action || 'phone_mock', ctaConfig?.primary_link)}

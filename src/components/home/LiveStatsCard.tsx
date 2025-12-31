@@ -93,7 +93,7 @@ export function LiveStatsCard({ githubUsername }: LiveStatsCardProps) {
   }, [githubUsername]);
 
   return (
-    <div className="bg-surface border border-muted/20 rounded-lg p-4">
+    <div className="bg-surface border border-muted/20 rounded-lg p-4" data-nosnippet>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xs font-mono uppercase tracking-wider text-muted">LIVE STATS</h3>
