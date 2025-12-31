@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Component, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { revalidateContent, revalidateAllContent } from '@/app/admin/actions/revalidate';
 import type { Page } from '@/types/database';
@@ -168,10 +168,17 @@ export default function AdminPagesPage() {
           setSignalsBadges(signals);
         }
         
-        // Resume content
-        const resume = settings.resume_content as ResumeContent | null;
+        // Resume content - ensure all required fields have defaults
+        const resume = settings.resume_content as Partial<ResumeContent> | null;
         if (resume) {
-          setResumeContent(resume);
+          setResumeContent({
+            education: Array.isArray(resume.education) ? resume.education : [],
+            skills: Array.isArray(resume.skills) ? resume.skills : [],
+            experience_note: resume.experience_note || '',
+            leadership: Array.isArray(resume.leadership) ? resume.leadership : [],
+            customSections: Array.isArray(resume.customSections) ? resume.customSections : [],
+            sectionConfig: resume.sectionConfig || undefined,
+          });
         }
         
         // Contact page content
@@ -745,43 +752,45 @@ export default function AdminPagesPage() {
       )}
 
       {activeTab === 'resume' && (
-        <ResumePageTab
-          resumeContent={resumeContent}
-          newSkill={newSkill}
-          setNewSkill={setNewSkill}
-          addSkill={addSkill}
-          removeSkill={removeSkill}
-          addEducation={addEducation}
-          updateEducation={updateEducation}
-          removeEducation={removeEducation}
-          addEducationCustomField={addEducationCustomField}
-          updateEducationCustomField={updateEducationCustomField}
-          removeEducationCustomField={removeEducationCustomField}
-          addLeadership={addLeadership}
-          updateLeadership={updateLeadership}
-          removeLeadership={removeLeadership}
-          addLeadershipCustomField={addLeadershipCustomField}
-          updateLeadershipCustomField={updateLeadershipCustomField}
-          removeLeadershipCustomField={removeLeadershipCustomField}
-          getSectionConfig={getSectionConfig}
-          updateSectionConfig={updateSectionConfig}
-          getAllSectionsSorted={getAllSectionsSorted}
-          swapSectionOrder={swapSectionOrder}
-          addCustomSection={addCustomSection}
-          updateCustomSectionName={updateCustomSectionName}
-          updateCustomSectionIcon={updateCustomSectionIcon}
-          updateCustomSectionColor={updateCustomSectionColor}
-          removeCustomSection={removeCustomSection}
-          addCustomSectionItem={addCustomSectionItem}
-          updateCustomSectionItem={updateCustomSectionItem}
-          removeCustomSectionItem={removeCustomSectionItem}
-          addCustomSectionItemCustomField={addCustomSectionItemCustomField}
-          updateCustomSectionItemCustomField={updateCustomSectionItemCustomField}
-          removeCustomSectionItemCustomField={removeCustomSectionItemCustomField}
-          setResumeContent={setResumeContent}
-          isSaving={isSaving}
-          onSave={handleSaveResume}
-        />
+        <ErrorBoundary fallback={<div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">Error loading Resume tab. Check console for details.</div>}>
+          <ResumePageTab
+            resumeContent={resumeContent}
+            newSkill={newSkill}
+            setNewSkill={setNewSkill}
+            addSkill={addSkill}
+            removeSkill={removeSkill}
+            addEducation={addEducation}
+            updateEducation={updateEducation}
+            removeEducation={removeEducation}
+            addEducationCustomField={addEducationCustomField}
+            updateEducationCustomField={updateEducationCustomField}
+            removeEducationCustomField={removeEducationCustomField}
+            addLeadership={addLeadership}
+            updateLeadership={updateLeadership}
+            removeLeadership={removeLeadership}
+            addLeadershipCustomField={addLeadershipCustomField}
+            updateLeadershipCustomField={updateLeadershipCustomField}
+            removeLeadershipCustomField={removeLeadershipCustomField}
+            getSectionConfig={getSectionConfig}
+            updateSectionConfig={updateSectionConfig}
+            getAllSectionsSorted={getAllSectionsSorted}
+            swapSectionOrder={swapSectionOrder}
+            addCustomSection={addCustomSection}
+            updateCustomSectionName={updateCustomSectionName}
+            updateCustomSectionIcon={updateCustomSectionIcon}
+            updateCustomSectionColor={updateCustomSectionColor}
+            removeCustomSection={removeCustomSection}
+            addCustomSectionItem={addCustomSectionItem}
+            updateCustomSectionItem={updateCustomSectionItem}
+            removeCustomSectionItem={removeCustomSectionItem}
+            addCustomSectionItemCustomField={addCustomSectionItemCustomField}
+            updateCustomSectionItemCustomField={updateCustomSectionItemCustomField}
+            removeCustomSectionItemCustomField={removeCustomSectionItemCustomField}
+            setResumeContent={setResumeContent}
+            isSaving={isSaving}
+            onSave={handleSaveResume}
+          />
+        </ErrorBoundary>
       )}
 
       {activeTab === 'contact' && (
@@ -1740,7 +1749,7 @@ function ResumePageTab({
         </div>
 
         <div className="space-y-4">
-          {resumeContent.education.map((edu, index) => (
+          {Array.isArray(resumeContent.education) && resumeContent.education.map((edu, index) => (
             <div key={index} className="p-4 bg-[var(--bg)] rounded-lg space-y-3">
               <div className="flex justify-between items-start">
                 <span className="text-xs text-[var(--muted)]">Education #{index + 1}</span>
@@ -1854,7 +1863,7 @@ function ResumePageTab({
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {resumeContent.skills.map((skill, index) => (
+          {Array.isArray(resumeContent.skills) && resumeContent.skills.map((skill, index) => (
             <span
               key={index}
               className="px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--text)] rounded-lg border border-[var(--surface)] flex items-center gap-2"
@@ -1981,7 +1990,7 @@ function ResumePageTab({
         </div>
 
         <div className="space-y-4">
-          {resumeContent.leadership.map((lead, index) => (
+          {Array.isArray(resumeContent.leadership) && resumeContent.leadership.map((lead, index) => (
             <div key={index} className="p-4 bg-[var(--bg)] rounded-lg space-y-3">
               <div className="flex justify-between items-start">
                 <span className="text-xs text-[var(--muted)]">Leadership #{index + 1}</span>
@@ -2302,4 +2311,43 @@ function ContactPageTab({
       </div>
     </div>
   );
+}
+
+// Error Boundary Component
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-red-400 font-medium mb-2">Something went wrong</p>
+          <p className="text-red-400/70 text-sm">{this.state.error?.message}</p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
