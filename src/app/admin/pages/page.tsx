@@ -1437,7 +1437,8 @@ function ResumePageTab({
   const [currentResumeUrl, setCurrentResumeUrl] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
   // Fetch current resume URL on mount
   useEffect(() => {
