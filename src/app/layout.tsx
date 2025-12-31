@@ -31,8 +31,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     metadataBase: new URL(SITE_URL),
     icons: {
-      icon: '/icon.svg',
+      icon: [
+        { url: '/favicon.ico', sizes: '48x48' },
+        { url: '/icon.svg', type: 'image/svg+xml' },
+      ],
       apple: '/icon.svg',
+      shortcut: '/favicon.ico',
     },
     alternates: {
       canonical: '/',
