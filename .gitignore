@@ -163,4 +163,6 @@ supabase/.temp/
 # Mac
 .DS_Store
 
-# Portfolio Admin Extension (personal use only)
+
+# Diary project (independent project - has its own git repo)
+/diary/
